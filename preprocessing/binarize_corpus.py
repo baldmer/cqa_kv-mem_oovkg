@@ -5,18 +5,6 @@ import pickle as pkl
 import json
 import plac
 
-'''
-start_symbol_index = 0
-end_symbol_index = 1
-unk_symbol_index = 2
-pad_symbol_index = 3
-kb_pad_idx = 0
-nkb = 1
-'''
-
-#CORPUS_DIR = "my_datasets/preprocessed_data_simple_cqa/train"
-#OUT_FILE = "my_datasets/test_simple_cqa.pkl"
-
 WIKIDATA_DIR = "datasets/wikidata_dir"
 TRANSE_DIR = "datasets/transe_dir"
 VOCAB_FILE = "vocabs/vocab.pkl"
@@ -27,8 +15,8 @@ PAD_KB_SYMBOL = '<pad_kb>'
 NKB_SYMBOL_INDEX = 1
 NKB_SYMBOL = '<nkb>'
 
-KB_OV_IDX = 1 # symbol assigned to entries out of kb or for padding to target_ids
-#kb_rel_ov_idx = 1 # symbol assigned to entries out of kb or for padding to target_ids
+KB_OV_IDX = 1
+#kb_rel_ov_idx = 1
 
 START_WORD_SYMBOL = '</s>'
 
@@ -45,6 +33,7 @@ UNK_WORD_ID = 2
 MAX_LEN = 20
 MAX_TARGET_SIZE = 10
 MAX_MEM_SIZE = 1500
+NUM_TRANSE_EMBED = 9274339
 
 def pad_or_clip_utterance(utterance):
         
@@ -77,19 +66,12 @@ def pad_or_clip_target(target_list):
 
 def pad_or_clip_memory(mem_list):
     if len(mem_list) > MAX_MEM_SIZE:
-        #print 'len(mem_list)', len(mem_list)
-        #print 'self.max_mem_size', self.max_mem_size
-        #raise Exception('len(mem_list) > self.max_mem_size')
         mem_list = mem_list[:MAX_MEM_SIZE]
-    #elif len(mem_list) < self.max_mem_size:
-    #    pad_length = self.max_mem_size - len(mem_list)
-    #    mem_list = mem_list+['<pad_kb>']*pad_length
     mem_list = mem_list+[NKB_SYMBOL]
     
     return mem_list
 
 
-      
 def isQid(input_str, entity_id_map):
     if input_str.upper() not in entity_id_map:
         return False
@@ -134,7 +116,6 @@ def binarize_context(context, params):
     binarized_context_kg = []
     num_unk_words = 0
 
-    #try:
     utter_words = nltk.word_tokenize(context)
     utter_words = pad_or_clip_utterance(utter_words)
 
@@ -178,7 +159,7 @@ def binarize_context(context, params):
 
 
 def binarize_kg_target(target, entity_id_map):
-    ''' # binarize target/target for the KG/include object entities/ground truth. '''
+    '''these are the ground truth entities'''
      
     target_ids = []
     target = target.rstrip()
@@ -247,7 +228,7 @@ def binarize_relation(relation, rel_id_map):
 
 
 def binarize_key_target(key_target, entity_id_map):
-    ''' OOV entities are already filtered'''
+    '''OOV entities are already filtered'''
     
     key_target_word_ids = []
     key_target = key_target.rstrip()
@@ -278,15 +259,11 @@ def main(input_corpus, output):
         exit("Corpus path does not exists")
     
     binarized_corpus = []
-    #binarized_corpus_context = []
-    #binarized_corpus_target = []
     num_unk_words = 0
     num_terms = 0
-    #freqs = collections.defaultdict(lambda: 0)
-    #df = collections.defaultdict(lambda: 0)
     num_instances = 0
-    
-    bad_qids = set(['Q184386','Q1541554','Q540955','Q2620241','Q742391'])  #adding Yes/No
+    # yes/no
+    bad_qids = set(['Q184386','Q1541554','Q540955','Q2620241','Q742391'])
     bad_qids.update(pkl.load(open(os.path.join(WIKIDATA_DIR, 'wikidata_entities_with_digitnames.pkl'), 'rb')))
 
     wikidata_qid_to_name = json.load(open(os.path.join(WIKIDATA_DIR, 'items_wikidata_n.json')))
@@ -294,10 +271,12 @@ def main(input_corpus, output):
     vocab = pkl.load(open(VOCAB_FILE, 'rb'))
     vocab_w2id = {v:k for k,v in vocab.items()}
     
-    #WARNING, ADD OOV ENT. TO id_ent_map
-    
     id_entity_map = {PAD_KB_SYMBOL_INDEX:PAD_KB_SYMBOL, NKB_SYMBOL_INDEX: NKB_SYMBOL}
     id_entity_map.update({(k+2):v for k, v in pkl.load(open(os.path.join(TRANSE_DIR, 'id_ent_map.pickle'), 'rb')).items()})
+    
+    # NOTE: comment for no oov handling
+    #id_entity_map.update({(k+2+NUM_TRANSE_EMBED):v for k,v in pkl.load(open(dir_name+'/v2_oov_id_ent_map.pickle','rb')).items()})
+    
     entity_id_map = {v: k for k, v in id_entity_map.items()}
     
     id_rel_map = {PAD_KB_SYMBOL_INDEX:PAD_KB_SYMBOL, NKB_SYMBOL_INDEX: NKB_SYMBOL}
@@ -338,35 +317,30 @@ def main(input_corpus, output):
                     num_unk_words += num_unk_words_context
                     num_terms += num_terms_context
                     
-                    # binarize target/target for the KG/includes object entities/ground truth.
-                    
+                    # binarize ground truth.
                     target =  binarize_kg_target(target, entity_id_map)
                    
                     #TODO: use orig_response to get the ids of response and binarize.
                     
                     # binarize source/subject entities
-                    
                     source_word_ids = binarize_source(source, entity_id_map)
                     
                     # binarize relations
-                    
                     relation_word_ids = binarize_relation(relation, rel_id_map)
                     
                     # binarize key_target
-                    
                     key_target_word_ids = binarize_key_target(key_target, entity_id_map)
                     
                     binarized_corpus.append([binarized_context, binarized_context_kg, target, orig_response, source_word_ids, relation_word_ids, key_target_word_ids])
                     
-        #create a binarized file per folder here/if needed
+        #create a binarized file per folder if needed
     
     to_pickle(binarized_corpus, output)
     
     print ("Number of instances: %d \n" % num_instances)
-    print ("Number of terms: %d \n" % num_terms)
+    print ("Number of words: %d \n" % num_terms)
     print ("Number of UNK words %d \n" % num_unk_words)
     
- 
 
 if __name__ == "__main__":
     plac.call(main)
