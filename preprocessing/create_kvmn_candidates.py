@@ -17,6 +17,7 @@ MAX_CANDIDATE_ENTITIES = 10
 config = {}
 config['wikidata_dir'] = "datasets/wikidata_dir"
 config['transe_dir'] = "datasets/transe_dir"
+config['use_baseline_algo'] = False
 
 
 def extract_dimension_from_tuples_as_list(list_of_tuples, dim):
@@ -393,7 +394,10 @@ def main(corpus_path):
                     if len(candidate_entities) > MAX_CANDIDATE_ENTITIES:
                         candidate_entities = candidate_entities[:MAX_CANDIDATE_ENTITIES]
                     
-                    tuples, relations_explored = get_tuples_involving_entities_base(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
+                    if config['use_baseline_algo']:
+                        tuples, relations_explored = get_tuples_involving_entities_base(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
+                    else:
+                        tuples, relations_explored = get_tuples_involving_entities(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
                     
                     '''
                     total_oov += oov_cand_num
@@ -434,7 +438,7 @@ def main(corpus_path):
     print("Number of subject candidates: %s" % total_sub_candidates) #could be repeated
     print("Number of OOV subject candidates (no embedding): %s" % total_oov)
     
-    print("Number of questions with no memory candidates: %d - and mem-cands %" % (num_no_mem_cand, num_mem_cand))
+    print("Number of questions with no memory candidates: %d - and mem-cands %d" % (num_no_mem_cand, num_mem_cand))
     
     print("Number of correct tuples with memory candidates: %d" % num_correct_tuples)
 
