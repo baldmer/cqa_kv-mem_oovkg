@@ -17,7 +17,7 @@ nkb = 1
 #CORPUS_DIR = "my_datasets/preprocessed_data_simple_cqa/train"
 #OUT_FILE = "my_datasets/test_simple_cqa.pkl"
 
-WIKIDATA_DIR = "my_datasets/wikidata_dir"
+WIKIDATA_DIR = "datasets/wikidata_dir"
 TRANSE_DIR = "datasets/transe_dir"
 VOCAB_FILE = "vocabs/vocab.pkl"
 

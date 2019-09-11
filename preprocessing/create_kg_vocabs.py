@@ -123,13 +123,13 @@ def main(dataset_dir, transe_dir, output_dir):
     
     # context and response files can contain subject or relation ents.
     files_types_map = {
-        'ents': ['_context_entities.txt', '_response_entities.txt'], 
-        'rels': ['_context_relations.txt']
+        'entities': ['_context_entities.txt', '_response_entities.txt'], 
+        'relations': ['_context_relations.txt']
     }
     
     type_ent_or_rel_map = {
-        'ents': 'id_ent_map.pickle',   
-        'rels': 'id_rel_map.pickle'
+        'entities': 'id_ent_map.pickle',   
+        'relations': 'id_rel_map.pickle'
     }
   
     for type_map, files_map in files_types_map.items():

@@ -348,6 +348,7 @@ def main(corpus_path):
     total_sub_candidates = 0
     total_oov = 0
     num_no_mem_cand = 0
+    num_mem_cand = 0
     num_correct_tuples = 0
     
 
@@ -401,7 +402,9 @@ def main(corpus_path):
                     
                     if len(tuples) == 0:
                         num_no_mem_cand += 1
-                        
+                    else:
+                        num_mem_cand += 1                    
+    
                     print (len(tuples))
                         
                     '''
@@ -431,7 +434,7 @@ def main(corpus_path):
     print("Number of subject candidates: %s" % total_sub_candidates) #could be repeated
     print("Number of OOV subject candidates (no embedding): %s" % total_oov)
     
-    print("Number of questions with no memory candidates: %d" % num_no_mem_cand)
+    print("Number of questions with no memory candidates: %d - and mem-cands %" % (num_no_mem_cand, num_mem_cand))
     
     print("Number of correct tuples with memory candidates: %d" % num_correct_tuples)
 
