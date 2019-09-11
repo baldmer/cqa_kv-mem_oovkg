@@ -1,17 +1,8 @@
-from data_utils import *
+""" based on baseline, can be found at https://github.com/amritasaha1812/CSQA_Code/"""
 import os
 import pickle as pkl
 import json
 import plac
-
-'''
-MAX_CANDIDATE_TUPLES = 100000
-MAX_CANDIDATE_ENTITIES = 10
-
-
-if len(all_tuples) > MAX_CANDIDATE_TUPLES:
-    all_tuples = set(random.sample(all_tuples, MAX_CANDIDATE_TUPLES))
-'''
 
 #from global ids
 pad_kb_symbol_index = 0
@@ -20,11 +11,25 @@ nkb_symbol_index = 1
 nkb_symbol = '<nkb>'
 
 NUM_TRANSE_EMBED = 9274339
+MAX_CANDIDATE_ENTITIES = 10
 
 # configure paths here    
 config = {}
-config['wikidata_dir'] = "my_datasets/wikidata_dir"
+config['wikidata_dir'] = "datasets/wikidata_dir"
 config['transe_dir'] = "datasets/transe_dir"
+
+
+def extract_dimension_from_tuples_as_list(list_of_tuples, dim):
+    result = []
+    for tup in list_of_tuples:
+        result.append(tup[dim])
+
+    return result
+
+
+PIPE = "|"
+def get_str_of_seq(entities):
+    return PIPE.join(entities)
 
 
 def load_wikidata(dir_name):
@@ -32,12 +37,12 @@ def load_wikidata(dir_name):
     if not os.path.exists(dir_name):
         sys.exit('Wikidata path do not exists.')
     
-    with open(dir_name+'/wikidata_short_1.json', encoding='utf-8') as data_file:
+    with open(dir_name+'/wikidata_short_1_reduced.json', encoding='utf-8') as data_file:
         wikidata = json.load(data_file)
         
     print('Successfully loaded wikidata1')
 
-    with open(dir_name+'/wikidata_short_2.json', encoding='utf-8') as data_file:
+    with open(dir_name+'/wikidata_short_2_reduced.json', encoding='utf-8') as data_file:
         wikidata2 = json.load(data_file)
         
     print('Successfully loaded wikidata2')
@@ -58,9 +63,10 @@ def load_wikidata(dir_name):
     # free memory
     del item_data
 
-    #P31: using this property as a qualifier is deprecated—use P2868 or P3831 instead
+    #P31: is deprecated use P2868 or P3831 instead
     wikidata_remove_list.extend([q for q in wikidata if 'P31' not in wikidata[q] and 'P279' not in wikidata[q]])
-    wikidata_remove_list.extend([u'Q7375063', u'Q24284139', u'Q1892495', u'Q22980687', u'Q25093915', u'Q22980685', u'Q22980688', u'Q25588222', u'Q1668023', u'Q20794889', u'Q22980686',u'Q297106',u'Q1293664'])
+    wikidata_remove_list.extend([u'Q7375063', u'Q24284139', u'Q1892495', u'Q22980687', u'Q25093915', u'Q22980685', 
+                                 u'Q22980688', u'Q25588222', u'Q1668023', u'Q20794889', u'Q22980686',u'Q297106',u'Q1293664'])
     # wikidata_remove_list.extend([q for q in wikidata if q not in child_par_dict])
 
     for q in wikidata_remove_list:
@@ -102,10 +108,22 @@ def load_wikidata(dir_name):
     with open(dir_name+'/child_par_dict_immed.json', encoding='utf-8') as data_file:
     	child_par_dict_immed = json.load(data_file)
     	
-    #************************ FIX for wierd parent types (wikimedia, metaclass etc.)********************************
-    stop_par_list = ['Q21025364', 'Q19361238', 'Q21027609', 'Q20088085', 'Q15184295', 'Q11266439', 'Q17362920', 'Q19798645', 'Q26884324', 'Q14204246', 'Q13406463', 'Q14827288', 'Q4167410', 'Q21484471', 'Q17442446', 'Q4167836', 'Q19478619', 'Q24017414', 'Q19361238', 'Q24027526', 'Q15831596', 'Q24027474', 'Q23958852', 'Q24017465', 'Q24027515', 'Q1924819']
+    # Fix for parent types (wikimedia, metaclass, etc.), refer to https://github.com/amritasaha1812/CSQA_Code/
+    stop_par_list = ['Q21025364', 'Q19361238', 'Q21027609', 'Q20088085', 'Q15184295', 'Q11266439',
+                     'Q17362920', 'Q19798645', 'Q26884324', 'Q14204246', 'Q13406463', 'Q14827288',
+                     'Q4167410', 'Q21484471', 'Q17442446', 'Q4167836', 'Q19478619', 'Q24017414', 
+                     'Q19361238', 'Q24027526', 'Q15831596', 'Q24027474', 'Q23958852', 'Q24017465', 
+                     'Q24027515', 'Q1924819']
     
-    stop_par_immed_list = ['Q10876391', 'Q1351452', 'Q1423994', 'Q1443451', 'Q14943910', 'Q151', 'Q15156455', 'Q15214930', 'Q15407973', 'Q15647814', 'Q15671253', 'Q162032', 'Q16222597', 'Q17146139', 'Q17633526', 'Q19798644', 'Q19826567', 'Q19842659', 'Q19887878', 'Q20010800', 'Q20113609', 'Q20116696', 'Q20671729', 'Q20769160', 'Q20769287', 'Q21281405', 'Q21286738', 'Q21450877', 'Q21469493', 'Q21705225', 'Q22001316', 'Q22001389', 'Q22001390', 'Q23840898', 'Q23894246', 'Q24025936', 'Q24046192', 'Q24571886', 'Q24731821', 'Q2492014', 'Q252944', 'Q26267864', 'Q35120', 'Q351749', 'Q367', 'Q370', 'Q3933727', 'Q4663903', 'Q4989363', 'Q52', 'Q5296', 'Q565', 'Q6540697', 'Q79786', 'Q964'] # courtsey Amrita Saha 
+    stop_par_immed_list = ['Q10876391', 'Q1351452', 'Q1423994', 'Q1443451', 'Q14943910', 'Q151', 
+                           'Q15156455', 'Q15214930', 'Q15407973', 'Q15647814', 'Q15671253', 'Q162032', 
+                           'Q16222597', 'Q17146139', 'Q17633526', 'Q19798644', 'Q19826567', 'Q19842659', 
+                           'Q19887878', 'Q20010800', 'Q20113609', 'Q20116696', 'Q20671729', 'Q20769160', 
+                           'Q20769287', 'Q21281405', 'Q21286738', 'Q21450877', 'Q21469493', 'Q21705225', 
+                           'Q22001316', 'Q22001389', 'Q22001390', 'Q23840898', 'Q23894246', 'Q24025936', 
+                           'Q24046192', 'Q24571886', 'Q24731821', 'Q2492014', 'Q252944', 'Q26267864', 
+                           'Q35120', 'Q351749', 'Q367', 'Q370', 'Q3933727', 'Q4663903', 'Q4989363', 
+                           'Q52', 'Q5296', 'Q565', 'Q6540697', 'Q79786', 'Q964']
 
     ent_list = []
 
@@ -153,7 +171,8 @@ def load_transe_data(dir_name):
     id_entity_map = {pad_kb_symbol_index:pad_kb_symbol, nkb_symbol_index: nkb_symbol}
     id_entity_map.update({(k+2):v for k,v in pkl.load(open(dir_name+'/id_ent_map.pickle','rb')).items()})
     
-    id_entity_map.update({(k+2+NUM_TRANSE_EMBED):v for k,v in pkl.load(open(dir_name+'/v2_oov_id_ent_map.pickle','rb')).items()})
+    # comment for no oov handling
+    #id_entity_map.update({(k+2+NUM_TRANSE_EMBED):v for k,v in pkl.load(open(dir_name+'/v2_oov_id_ent_map.pickle','rb')).items()})
     
     entity_id_map = {v: k for k, v in id_entity_map.items()}
 
@@ -165,8 +184,8 @@ def load_transe_data(dir_name):
 
 
 def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data, relations_in_context=None, types_in_context=None):
-    #tuples = set([])
-    tuples = []
+    tuples = set([])
+    #tuples = []
     #rev_tuples = set([])
     pids = set([])
     
@@ -237,7 +256,7 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
                 detected_qids = wiki_feasible_qids.union(feasible_qids).union(rev_feasible_qids)
                
             for qid in detected_qids:
-                
+                '''
                 tup = [QID, pid, qid]
                 rev_tup = [qid, pid, QID]
                 
@@ -246,12 +265,72 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
                     
                 if rev_tup not in tuples:
                     tuples.append([qid, pid, QID])
-                    #tuples.add((QID, pid, qid))
-                    #tuples.add((qid, pid, QID))   
+                '''
+            
+                tuples.add((QID, pid, qid))
+                tuples.add((qid, pid, QID))   
     
-    oov_cand = len([q for q in candidate_entities if q not in entity_id_map ])
+    ##oov_cand = len([q for q in candidate_entities if q not in entity_id_map ])
     
-    return tuples, pids, oov_cand
+    return tuples, pids
+
+
+# from baseline for comparative: https://github.com/amritasaha1812/CSQA_Code/
+def get_tuples_involving_entities_base(candidate_entities, all_wikidata, transe_data, relations_in_context=None, types_in_context=None):
+    tuples = set([])
+    pids = set([])
+    
+    wikidata, reverse_dict, prop_data, child_par_dict, child_all_par_dict = all_wikidata
+    _, entity_id_map, _, rel_id_map = transe_data
+    
+    for QID in [q1 for q1 in candidate_entities if q1 in child_par_dict and q1 in entity_id_map]:
+        QID_type_matched = False
+        if types_in_context is None or (QID in child_all_par_dict and len(set(child_all_par_dict[QID]).intersection(types_in_context))>0):
+                QID_type_matched = True
+        feasible_pids = [p for p in wikidata[QID] if p in prop_data and p in rel_id_map]
+        if relations_in_context is not None:
+                detected_pids = set(feasible_pids).intersection(relations_in_context)
+                if len(detected_pids)==0:
+                        detected_pids = set(feasible_pids)
+        else:
+                detected_pids = set(feasible_pids)
+        pids.update(detected_pids)
+        for pid in detected_pids:
+            feasible_qids = set([q for q in wikidata[QID][pid] if q in entity_id_map and q in child_par_dict])
+            if types_in_context is None or QID_type_matched:
+                detected_qids = feasible_qids
+            else:
+                detected_qids = set([x for x in feasible_qids if len(set(child_all_par_dict[x]).intersection(types_in_context))>0])
+            if len(detected_qids)==0:
+                detected_qids = feasible_qids
+            for qid in detected_qids:
+                tuples.add((QID, pid, qid))
+                tuples.add((qid, pid, QID))    
+    for QID in [q1 for q1 in candidate_entities if q1 in reverse_dict and q1 in entity_id_map]:
+        QID_type_matched = False
+        if types_in_context is None or (QID in child_all_par_dict and len(set(child_all_par_dict[QID]).intersection(types_in_context))>0):
+                QID_type_matched = True
+        feasible_pids = [p for p in reverse_dict[QID] if p in prop_data and p in rel_id_map]
+        if relations_in_context is not None:
+                detected_pids = set(feasible_pids).intersection(relations_in_context)
+                if len(detected_pids)==0:
+                        detected_pids = set(feasible_pids)
+        else:
+                detected_pids = set(feasible_pids)
+        pids.update(detected_pids)
+        for pid in detected_pids:
+            feasible_qids = set([q for q in reverse_dict[QID][pid] if q in entity_id_map and q in child_par_dict])
+            if types_in_context is None or QID_type_matched:
+                detected_qids = feasible_qids
+            else:
+                detected_qids = set([x for x in feasible_qids if len(set(child_all_par_dict[x]).intersection(types_in_context))>0])
+            if len(detected_qids)==0:
+                detected_qids = feasible_qids
+            for qid in detected_qids:#[q for q in wikidata[QID][pid] if q in entity_id_map]:
+                tuples.add((QID, pid, qid))
+                tuples.add((qid, pid, QID))
+
+    return tuples, pids
 
 
 @plac.annotations(
@@ -310,19 +389,27 @@ def main(corpus_path):
                     
                     resp_entities = response_entities[i].strip().split("|")
                     
-                    tuples, relations_explored, oov_cand_num = get_tuples_involving_entities(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
+                    if len(candidate_entities) > MAX_CANDIDATE_ENTITIES:
+                        candidate_entities = candidate_entities[:MAX_CANDIDATE_ENTITIES]
                     
+                    tuples, relations_explored = get_tuples_involving_entities_base(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
                     
+                    '''
                     total_oov += oov_cand_num
                     total_sub_candidates += len(candidate_entities)
+                    '''
                     
                     if len(tuples) == 0:
                         num_no_mem_cand += 1
                         
+                    print (len(tuples))
+                        
+                    '''
                     for cand in candidate_entities:
                         if [cand, list(relations_in_context)[0], resp_entities[0]] in tuples:
                             num_correct_tuples += 1
                             break
+                    '''
                     
                     sources = extract_dimension_from_tuples_as_list(tuples, 0)
                     relations = extract_dimension_from_tuples_as_list(tuples, 1)
