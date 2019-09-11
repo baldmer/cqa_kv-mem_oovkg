@@ -155,10 +155,10 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
     rel_embed = np.vstack([new_row, rel_embed]) # corr. to <pad_kb>
     rel_embed = np.vstack([new_row_nkb, rel_embed]) # corr. to <nkb>
     
-	# here we use the OOV embeddings created offline
-    oov_ent_embed = np.load(os.path.join(config['transe_dir'], 'v2_oov_ent_embed.npy'))
-    
-    ent_embed = np.concatenate((ent_embed, oov_ent_embed))
+    # here we use the OOV embeddings created offline
+    if config['oov_ent_handler']:
+        oov_ent_embed = np.load(os.path.join(config['transe_dir'], config['oov_ent_handler']))
+        ent_embed = np.concatenate((ent_embed, oov_ent_embed))
     
     n_batches = int(math.ceil(len(data)/config['batch_size']))
   
@@ -364,7 +364,6 @@ def test(model, data, config):
   
     #wikidata_id_name_map = json.load(open('data/items_wikidata_n.json'))
   
-  
     ent_embed = np.load(os.path.join(config['transe_dir'], 'ent_embed.pkl.npy'))
     rel_embed = np.load(os.path.join(config['transe_dir'], 'rel_embed.pkl.npy'))    
     
@@ -377,8 +376,10 @@ def test(model, data, config):
     rel_embed = np.vstack([new_row, rel_embed]) # corr. to <pad_kb>
     rel_embed = np.vstack([new_row_nkb, rel_embed]) # corr. to <nkb>
     
-    oov_ent_embed = np.load(os.path.join(config['transe_dir'], 'v2_oov_ent_embed.npy'))
-    ent_embed = np.concatenate((ent_embed, oov_ent_embed))
+    # here we use the OOV embeddings created offline
+    if config['oov_ent_handler']:
+        oov_ent_embed = np.load(os.path.join(config['transe_dir'], config['oov_ent_handler']))
+        ent_embed = np.concatenate((ent_embed, oov_ent_embed))
     
     n_batches = int(math.ceil(len(data)/config['batch_size']))
     
@@ -511,7 +512,7 @@ config = {
     'input_size': len(vocab.keys()),
     'hidden_size': 100, #must be same dim as transe
     'cell_size': 200, 
-    'hops': 1,
+    'hops': 1, # all of our experiments are with 1 hop
     'print_every': 100,
     'valid_every': 500,
     'save_every_epoch': 1,
@@ -520,10 +521,11 @@ config = {
     'save_model_name': '',
     'out_test_file': '',
     'clip_grad': 5,
-    'train_data_file': "../my_datasets/oov_train_ALL_simple_cqa.pkl", # the datasets are binarized considering OOV entities/words
-    'test_data_file': "../my_datasets/oov_test_ALL_simple_cqa.pkl",
-    'valid_data_file': "../my_datasets/oov_valid_ALL_simple_cqa.pkl",
-    'transe_dir': "../datasets/transe_dir",
+    'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
+    'test_data_file': "datasets/no_oov_handling_new_mem/test.pkl",
+    'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
+    'oov_ent_handler': None, # None for no oov handling, secify embeddings o/w
+    'transe_dir': "datasets/transe_dir",
     'dropout': 0.2
 }
 
@@ -587,12 +589,9 @@ def main(mode, model_file=None, output=None):
         for param_tensor in model.state_dict():
             print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
-
         print("Optimizer's state_dict:")
         for var_name in model_optimizer.state_dict():
             print(var_name, "\t", model_optimizer.state_dict()[var_name])
-
-
 
         config['out_test_file'] = output
 
@@ -600,6 +599,4 @@ def main(mode, model_file=None, output=None):
 
 
 if __name__ == "__main__":
-    
     plac.call(main)
-
