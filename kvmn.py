@@ -1,3 +1,4 @@
+# TODO: restructure, this structure was the most convenient way to experiment in colab.
 from __future__ import division
 import operator
 import torch
@@ -168,11 +169,11 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
     print ("Train started...")
     print ("Total batches %d, train size: %d" % (n_batches, len(data)))
     
-    out_file_loss_valid = open(config['out_train_valid_loss_file'], "w")
+    out_file_loss_valid = open(os.path.join(config['save_path'], config['save_name_prefix']+'_train_valid_loss.txt'), "w")
   
     for epoch in range(config["max_epochs"]):
         
-        if (epoch + 1) % 4 == 0:
+        if (epoch + 1) % 10 == 0:
             adjust_learning_rate(model_optimizer, epoch, config["lr"])
         
         for i_batch in range(n_batches):
@@ -223,7 +224,7 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
             #enc_w2v[1] max_seq_len * batch_size, use only one question as input
             probs = model.forward(enc_w2v[0], w2v_lens[0], enc_kb_emb, key_emb, key_target_emb, mem_weights)
             curr_loss  = loss_f(probs, target) #summed loss
-            avg_batch_loss = curr_loss / config['batch_size']
+            avg_batch_loss = curr_loss.item() / config['batch_size']
             curr_loss.backward()
             
             _ = nn.utils.clip_grad_norm_(model.parameters(), config['clip_grad'])
@@ -233,112 +234,114 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
             if i_batch % config['print_every'] == 0 and i_batch > 0:
                 print ("Epoch %d, batch %d,  Avg. train loss(over batch) = %.3f" % (epoch, i_batch, avg_batch_loss))
                 
-            # validate every configured epoch, save the best validation loss
+        # validate every configured epoch, save the best validation loss
+
+        if epoch % config['valid_every_epoch'] == 0:
+            with torch.no_grad():
+                
+                print ("Validating...")
+                
+                model.eval()
+                valid_loss = 0
+                random.shuffle(valid_data)
+                n_valid_batches = int(math.ceil(len(valid_data)/config['batch_size']))
+                
+                print ("Total batches %d, valid size: %d" % (n_valid_batches, len(valid_data)))
+                
+                for j_batch in range(n_valid_batches):
+                #for j_batch in range(1): # to evaluate subjectively only
+                    valid_batch_raw = valid_data[j_batch*config['batch_size']:(j_batch+1)*config['batch_size']]
+                    valid_batch = get_batch_data(valid_batch_raw, max_mem_size=config["max_mem_size"], batch_size=config["batch_size"])
+                
+                    enc_w2v, w2v_lens, enc_kb, target, orig_target, orig_response, mem_weights, sources, rel, key_target = valid_batch
+                
+                    # convert to torch tensors
+                    enc_w2v = torch.LongTensor(enc_w2v)
+                    w2v_lens = torch.Tensor(w2v_lens)
+                    #enc_kb = torch.LongTensor(enc_kb)
             
-            if epoch > 0 and epoch % config['valid_every_epoch'] == 0:
-                with torch.no_grad():
-                  
-                    print ("Validating...")
-                    
-                    model.eval()
-                    valid_loss = 0
-                    random.shuffle(valid_data)
-                    n_valid_batches = int(math.ceil(len(valid_data)/config['batch_size']))
-                    
-                    print ("Total batches %d, valid size: %d" % (n_valid_batches, len(valid_data)))
-                    
-                    for j_batch in range(n_valid_batches):
-                    #for j_batch in range(1): # to evaluate subjectively only
-                        valid_batch_raw = valid_data[j_batch*config['batch_size']:(j_batch+1)*config['batch_size']]
-                        valid_batch = get_batch_data(valid_batch_raw, max_mem_size=config["max_mem_size"], batch_size=config["batch_size"])
-                    
-                        enc_w2v, w2v_lens, enc_kb, target, orig_target, orig_response, mem_weights, sources, rel, key_target = valid_batch
-                    
-                        # convert to torch tensors
-                        enc_w2v = torch.LongTensor(enc_w2v)
-                        w2v_lens = torch.Tensor(w2v_lens)
-                        #enc_kb = torch.LongTensor(enc_kb)
+                    #target = torch.FloatTensor(target) # BCEWithLogitsLoss requires float
+                    target = torch.LongTensor(target)
+                    #response = torch.LongTensor(response)
+                    mem_weights = torch.FloatTensor(mem_weights)
+            
+                    # send to device
+                    enc_w2v = enc_w2v.to(device)
+                    w2v_lens = w2v_lens.to(device)
+                    #enc_kb = enc_kb.to(device)
+                    target = target.to(device)
+                    #response =  response.to(device)
+                    mem_weights = mem_weights.to(device)
+            
+                    # get the emb of all the (subj, rel, obj) in the batch
+                    ent_emb = torch.FloatTensor([np.array([ent_embed[i] for i in ent_i]) for ent_i in sources]) # size_memory * batch_size * wikidata_embed_size
+                    ent_emb = ent_emb.transpose(1, 0)
+                    rel_emb = torch.FloatTensor([np.array([rel_embed[i] for i in rel_i]) for rel_i in rel])
+                    rel_emb = rel_emb.transpose(1, 0)
+            
+                    key_emb = torch.cat((ent_emb, rel_emb), 2) # batch_size * size_memory * (2*wikidata_embed_size)
+                    key_target_emb = torch.FloatTensor([np.array([ent_embed[i] for i in key_target_i]) for key_target_i in key_target])
+                    key_target_emb = key_target_emb.transpose(1,0) #batch_size * size_memory * wikidata_embed_size
                 
-                        #target = torch.FloatTensor(target) # BCEWithLogitsLoss requires float
-                        target = torch.LongTensor(target)
-                        #response = torch.LongTensor(response)
-                        mem_weights = torch.FloatTensor(mem_weights)
+                    enc_kb_emb = torch.FloatTensor([np.array([ent_embed[i] for i in enc_kb_i]) for enc_kb_i in enc_kb[0]]) # seq_len*batch_size*wikidata_emb
                 
-                        # send to device
-                        enc_w2v = enc_w2v.to(device)
-                        w2v_lens = w2v_lens.to(device)
-                        #enc_kb = enc_kb.to(device)
-                        target = target.to(device)
-                        #response =  response.to(device)
-                        mem_weights = mem_weights.to(device)
-                
-                        # get the emb of all the (subj, rel, obj) in the batch
-                        ent_emb = torch.FloatTensor([np.array([ent_embed[i] for i in ent_i]) for ent_i in sources]) # size_memory * batch_size * wikidata_embed_size
-                        ent_emb = ent_emb.transpose(1, 0)
-                        rel_emb = torch.FloatTensor([np.array([rel_embed[i] for i in rel_i]) for rel_i in rel])
-                        rel_emb = rel_emb.transpose(1, 0)
-                
-                        key_emb = torch.cat((ent_emb, rel_emb), 2) # batch_size * size_memory * (2*wikidata_embed_size)
-                        key_target_emb = torch.FloatTensor([np.array([ent_embed[i] for i in key_target_i]) for key_target_i in key_target])
-                        key_target_emb = key_target_emb.transpose(1,0) #batch_size * size_memory * wikidata_embed_size
+                    #to device
+                    key_emb = key_emb.to(device)
+                    key_target_emb = key_target_emb.to(device)
+                    enc_kb_emb = enc_kb_emb.to(device)
+            
+                    #enc_w2v[0] max_seq_len * batch_size, use only one question as input
+                    #TODO question has a <kb> placeholder, that will be considered as oov
+                    probs = model.forward(enc_w2v[0], w2v_lens[0], enc_kb_emb, key_emb, key_target_emb, mem_weights)
+                    curr_valid_loss = loss_f(probs, target)
+                    valid_loss += curr_valid_loss.item() # summed loss
                     
-                        enc_kb_emb = torch.FloatTensor([np.array([ent_embed[i] for i in enc_kb_i]) for enc_kb_i in enc_kb[0]]) # seq_len*batch_size*wikidata_emb
-                    
-                        #to device
-                        key_emb = key_emb.to(device)
-                        key_target_emb = key_target_emb.to(device)
-                        enc_kb_emb = enc_kb_emb.to(device)
-                
-                        #enc_w2v[0] max_seq_len * batch_size, use only one question as input
-                        #TODO question has a <kb> placeholder, that will be considered as oov
-                        probs = model.forward(enc_w2v[0], w2v_lens[0], enc_kb_emb, key_emb, key_target_emb, mem_weights)
-                        curr_valid_loss = loss_f(probs, target)
-                        valid_loss += curr_valid_loss.item() # summed loss
+                    # random subjective evaluation
+                    '''
+                    if j_batch == 0:
+                        _, pred_indexes = torch.max(probs, 1)
+                        #_, pred_indexes = torch.topk(probs, 3, 1)
                         
-                        # random subjective evaluation
-                        '''
-                        if j_batch == 0:
-                            _, pred_indexes = torch.max(probs, 1)
-                            #_, pred_indexes = torch.topk(probs, 3, 1)
-                            
-                            print ("Max probs indexes in batch")
-                            print (pred_indexes.cpu().detach().numpy())
-                            
-                            print ('Actual indexes in batch')
-                            print (target.cpu().detach().numpy())
-                            
-                            rand_acc_count = 0
-                            pred_indexes = pred_indexes.cpu().detach().numpy()
-                            target = target.cpu().detach().numpy()
-                            
-                            for p, t in zip(pred_indexes, target):
-                                if p == t:
-                                    rand_acc_count += 1
-                            
-                            rand_acc = rand_acc_count/config['batch_size']
-                            print ("correct %d" % rand_acc_count)
-                            print ("Sujective evaluation, accuracy = %.4f" % rand_acc)
-                        '''
+                        print ("Max probs indexes in batch")
+                        print (pred_indexes.cpu().detach().numpy())
+                        
+                        print ('Actual indexes in batch')
+                        print (target.cpu().detach().numpy())
+                        
+                        rand_acc_count = 0
+                        pred_indexes = pred_indexes.cpu().detach().numpy()
+                        target = target.cpu().detach().numpy()
+                        
+                        for p, t in zip(pred_indexes, target):
+                            if p == t:
+                                rand_acc_count += 1
+                        
+                        rand_acc = rand_acc_count/config['batch_size']
+                        print ("correct %d" % rand_acc_count)
+                        print ("Sujective evaluation, accuracy = %.4f" % rand_acc)
+                    '''
+            
+                overall_valid_loss = valid_loss/len(valid_data)
+                print ("Overall valid loss = %.4f" % overall_valid_loss)
                 
-                    overall_valid_loss = valid_loss/len(valid_data)
-                    print ("Overall valid loss = %.4f" % overall_valid_loss)
+                if overall_valid_loss < best_valid_loss:
+                    print ("New best validation loss found, saving model...")
                     
-                    if overall_valid_loss < best_valid_loss:
-                        best_valid_loss = overall_valid_loss
-                        # save the model
-                        if not os.path.exists(config['save_path']):
-                            os.mkdir(config['save_path'])
-                            
-                        torch.save(model.state_dict(), os.path.join(config['save_path'], '%s_epoch_%d.pt' % (config["save_name_prefix"], epoch)))
-                    
-                    # save stats to file, current train batch loss vs overall valid loss
-                    out_file_loss_valid.write("%s\t%s\n" % (avg_batch_loss, overall_valid_loss))
-                    
-                model.train() # keep training
+                    best_valid_loss = overall_valid_loss
+                    # save the model
+                    if not os.path.exists(config['save_path']):
+                        os.mkdir(config['save_path'])
+                        
+                    torch.save(model.state_dict(), os.path.join(config['save_path'], '%s_epoch_%d.pt' % (config["save_name_prefix"], epoch)))
+                
+                # save stats to file, current train batch loss vs overall valid loss
+                out_file_loss_valid.write("%s\t%s\n" % (avg_batch_loss, overall_valid_loss))
+                
+        model.train() # keep training
                 
                 
 def adjust_learning_rate(optimizer, epoch, lr):
-    lr = lr / (2 ** (epoch // 4))
+    lr = lr / (2 ** (epoch // 10))
     
     print ("Adjust lr to %s" % lr)
     
@@ -499,14 +502,12 @@ config = {
     'print_every': 100,
     'valid_every_epoch': 1, # save best validation loss model
     'save_path':'models',
-    'out_test_file': '', # will be "model_name"+"out_test.txt" 
-    'out_train_valid_loss_file': 'train_valid_loss.txt',
+    'out_test_file': '', # will be "model_name"+"out_test.txt"
     'clip_grad': 5,
     'dropout': 0.2,
     'pretrain_word_model': None,  # word2vec, glove
     'save_name_prefix': 'TEST_CLEAN_CODE',
-    #'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
-    'train_data_file': "datasets/train_simple_cqa.pkl",
+    'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
     'test_data_file': "datasets/no_oov_handling_new_mem/test.pkl",
     'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
     'oov_ent_handler': None, # None for no oov handling, secify embeddings o/w
