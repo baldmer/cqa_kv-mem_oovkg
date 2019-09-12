@@ -108,6 +108,8 @@ def transpose_utterances(padded_enc_w2v, padded_enc_kb, padded_target, batch_sou
     batch_key_target = np.asarray(batch_key_target) # batch_size * max_mem_size
     # padded_target : batch_size * max_target_size
     
+    '''
+    # this still produces multitargets- double check
     if not is_test:
             #TODO:DOUBLE CHECK
             mapped_padded_target = np.zeros(batch_key_target.shape)
@@ -124,7 +126,26 @@ def transpose_utterances(padded_enc_w2v, padded_enc_kb, padded_target, batch_sou
                         key_target_i = max_mem_size-1
                         
                     mapped_padded_target[i,j] = key_target_i
-                    
+    '''
+    
+    if not is_test:
+        #TODO:DOUBLE CHECK
+        #mapped_padded_target = np.zeros(batch_key_target.shape)
+        mapped_padded_target = np.full(batch_key_target.shape[0], max_mem_size-1)
+        for i in range(padded_target.shape[0]):
+            #is_oov = True
+            for j in range(padded_target.shape[1]):
+                if padded_target[i,j] in batch_key_target[i,:] and padded_target[i,j] != kb_pad_idx:
+                    key_target_i = int(np.nonzero(batch_key_target[i,:] == padded_target[i,j])[0][0])
+                    mapped_padded_target[i] = key_target_i
+        #output will be like this: 
+        '''
+        tensor([1, 0, 1, 1, 9, 9, 9, 1, 0, 0, 9, 0, 1, 0, 2, 1, 9, 9, 0, 1, 1, 1, 1, 0,
+        0, 9, 1, 1, 0, 1, 1, 9, 9, 4, 1, 1, 2, 0, 0, 9, 0, 1, 9, 1, 0, 0, 1, 0,
+        1, 1, 9, 1, 0, 1, 1, 1, 9, 1, 0, 3, 1, 1, 1, 0])
+        '''
+        
+       
     '''
     #use for multilabel classification
     if not is_test:

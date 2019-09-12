@@ -81,7 +81,7 @@ class KVMemory(nn.Module):
             _, q_state = self.gru(packed_q) #bs*cell_size
             q_state = q_state.squeeze() # from the encoder [1, hid_s, cell_s]
             
-			#TODO: one hop is enough for our experiments
+            #TODO: one hop is enough for our experiments
             for hop in range(self.config["hops"]):
                 
                 # --memory addressing--
@@ -112,7 +112,7 @@ class KVMemory(nn.Module):
                 #key_target_emb #bs * ms * wikidata_embed_size
                 #values_emb = key_target_emb.transpose(2,1) #bs * wikidata_embed_size * ms, needs this shape when values_emb * probs
                 #TODO: confirm, should be a weighted sum over value entries (e.g. dim 1), not of embedding dimension.
-				#o_k = torch.sum(values_emb * probs, 2) #bs * wikidata_embed_size
+                #o_k = torch.sum(values_emb * probs, 2) #bs * wikidata_embed_size
                 o_k = torch.bmm(probs, key_target_emb) #bs * 1 * wiki_size
                 o_k = o_k.squeeze(1)
                
@@ -163,30 +163,21 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
     n_batches = int(math.ceil(len(data)/config['batch_size']))
   
     print_loss_total = 0
+    best_valid_loss = float('inf')
     
     print ("Train started...")
     print ("Total batches %d, train size: %d" % (n_batches, len(data)))
     
-    
-    out_file_loss_valid = open("out_loss_valid.txt", "w")
+    out_file_loss_valid = open(config['out_train_valid_loss_file'], "w")
   
     for epoch in range(config["max_epochs"]):
         
         if (epoch + 1) % 4 == 0:
             adjust_learning_rate(model_optimizer, epoch, config["lr"])
         
-        
-        if epoch % config["save_every_epoch"] == 0:
-            print('Saving Model.')
-            #TODO: save the best model
-            torch.save(model.state_dict(), os.path.join(config['save_path'], '%s_%d_epoch.pt' % (config["save_name_prefix"], epoch)))
-        
-        #train_loss = 0
-        
         for i_batch in range(n_batches):
               
             model_optimizer.zero_grad()
-            #encoder_optimizer.zero_grad()
             
             batch_raw = data[i_batch*config['batch_size']:(i_batch+1)*config['batch_size']]
             batch = get_batch_data(batch_raw, max_mem_size=config["max_mem_size"], batch_size=config["batch_size"])
@@ -211,7 +202,6 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
             mem_weights = mem_weights.to(device)
             #response =  response.to(device)
             
-            
             # get the emb of all the (subj, rel, obj) in the batch
             ent_emb = torch.FloatTensor([np.array([ent_embed[i] for i in ent_i]) for ent_i in sources]) # size_memory * batch_size * wikidata_embed_size
             ent_emb = ent_emb.transpose(1, 0)
@@ -232,13 +222,8 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
             
             #enc_w2v[1] max_seq_len * batch_size, use only one question as input
             probs = model.forward(enc_w2v[0], w2v_lens[0], enc_kb_emb, key_emb, key_target_emb, mem_weights)
-            
             curr_loss  = loss_f(probs, target) #summed loss
-            
             avg_batch_loss = curr_loss / config['batch_size']
-            
-            #print_loss_total += curr_loss.item()
-            
             curr_loss.backward()
             
             _ = nn.utils.clip_grad_norm_(model.parameters(), config['clip_grad'])
@@ -246,28 +231,24 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
             model_optimizer.step()
             
             if i_batch % config['print_every'] == 0 and i_batch > 0:
-                #print_loss_avg = print_loss_total / config['print_every']
-                #print_loss_total = 0
                 print ("Epoch %d, batch %d,  Avg. train loss(over batch) = %.3f" % (epoch, i_batch, avg_batch_loss))
                 
-            # save every validate_every
+            # validate every configured epoch, save the best validation loss
             
-            if i_batch > 0 and i_batch % config['valid_every'] == 0:
+            if epoch > 0 and epoch % config['valid_every_epoch'] == 0:
                 with torch.no_grad():
                   
-                    model.eval()
                     print ("Validating...")
-                  
+                    
+                    model.eval()
                     valid_loss = 0
-                    
                     random.shuffle(valid_data)
-                    
                     n_valid_batches = int(math.ceil(len(valid_data)/config['batch_size']))
                     
                     print ("Total batches %d, valid size: %d" % (n_valid_batches, len(valid_data)))
                     
-                    #for j_batch in range(n_valid_batches):
-                    for j_batch in range(1): # to evaluate subjectively only
+                    for j_batch in range(n_valid_batches):
+                    #for j_batch in range(1): # to evaluate subjectively only
                         valid_batch_raw = valid_data[j_batch*config['batch_size']:(j_batch+1)*config['batch_size']]
                         valid_batch = get_batch_data(valid_batch_raw, max_mem_size=config["max_mem_size"], batch_size=config["batch_size"])
                     
@@ -309,15 +290,13 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
                         enc_kb_emb = enc_kb_emb.to(device)
                 
                         #enc_w2v[0] max_seq_len * batch_size, use only one question as input
-                        #TODO question has a <kb> placeholder, that will be consider as oov
+                        #TODO question has a <kb> placeholder, that will be considered as oov
                         probs = model.forward(enc_w2v[0], w2v_lens[0], enc_kb_emb, key_emb, key_target_emb, mem_weights)
-                    
                         curr_valid_loss = loss_f(probs, target)
-                    
-                        valid_loss += curr_valid_loss.item() #summed loss
-                        
+                        valid_loss += curr_valid_loss.item() # summed loss
                         
                         # random subjective evaluation
+                        '''
                         if j_batch == 0:
                             _, pred_indexes = torch.max(probs, 1)
                             #_, pred_indexes = torch.topk(probs, 3, 1)
@@ -339,16 +318,23 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
                             rand_acc = rand_acc_count/config['batch_size']
                             print ("correct %d" % rand_acc_count)
                             print ("Sujective evaluation, accuracy = %.4f" % rand_acc)
-                        
+                        '''
                 
                     overall_valid_loss = valid_loss/len(valid_data)
                     print ("Overall valid loss = %.4f" % overall_valid_loss)
                     
-                    #save to file
+                    if overall_valid_loss < best_valid_loss:
+                        best_valid_loss = overall_valid_loss
+                        # save the model
+                        if not os.path.exists(config['save_path']):
+                            os.mkdir(config['save_path'])
+                            
+                        torch.save(model.state_dict(), os.path.join(config['save_path'], '%s_epoch_%d.pt' % (config["save_name_prefix"], epoch)))
+                    
+                    # save stats to file, current train batch loss vs overall valid loss
                     out_file_loss_valid.write("%s\t%s\n" % (avg_batch_loss, overall_valid_loss))
                     
                 model.train() # keep training
-                  
                 
                 
 def adjust_learning_rate(optimizer, epoch, lr):
@@ -445,7 +431,7 @@ def test(model, data, config):
         gold_entities = []
         pred_entities = []
         
-        #get value indexed by target_id in memory key_target_id
+        # get value indexed by target_id in memory key_target_id
         for target_i, pred_i, key_target_i, orig_target_i, orig_resp_i in zip(target, np_pred_indexes, key_target, orig_target, orig_response):
             row = []
             row.append(str(target_i))
@@ -476,9 +462,8 @@ def init_embeddings(vocab, embed_size, pretrain_embed):
 
 #torch.autograd.set_detect_anomaly(True)
 
-#load glove embeddings
-
-def load_glove(file_name):
+#load embeddings in text file
+def load_text_embeddings(file_name):
   
     print("Loading Glove Model")
     
@@ -496,58 +481,58 @@ def load_glove(file_name):
     return glove
 
 
-vocab = pkl.load(open("../vocabs/vocab.pkl", "rb"))
+vocab = pkl.load(open("vocabs/vocab.pkl", "rb"))
 
 config = {
     'wikidata_embed_size': 100,
     'max_epochs': 21,
     'batch_size': 64,
     'lr': 0.0001, # 'lr': 0.0001 worked well for single class
-    'pre_embed_file': '',
-    'reader_model': '',
-    'max_seq_len': 10,
-    'max_utter': 1,
-    'max_target_size':10,
-    'max_mem_size': 10, # grater size improve scores, take longer to train.
+    #'max_seq_len': 10,
+    #'max_utter': 1,
+    #'max_target_size':10,
+    'max_mem_size': 10, # grater size might improve scores, take longer to train.
     'input_size': len(vocab.keys()),
-    'hidden_size': 100, #must be same dim as transe
+    'hidden_size': 100, # must be same dim as transe
     'cell_size': 200, 
     'hops': 1, # all of our experiments are with 1 hop
     'print_every': 100,
-    'valid_every': 500,
-    'save_every_epoch': 1,
+    'valid_every_epoch': 1, # save best validation loss model
     'save_path':'models',
-    'save_name_prefix': 'GOLD_LINEAR_PRETRAINED',
-    'save_model_name': '',
-    'out_test_file': '',
+    'out_test_file': '', # will be "model_name"+"out_test.txt" 
+    'out_train_valid_loss_file': 'train_valid_loss.txt',
     'clip_grad': 5,
-    'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
+    'dropout': 0.2,
+    'pretrain_word_model': None,  # word2vec, glove
+    'save_name_prefix': 'TEST_CLEAN_CODE',
+    #'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
+    'train_data_file': "datasets/train_simple_cqa.pkl",
     'test_data_file': "datasets/no_oov_handling_new_mem/test.pkl",
     'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
     'oov_ent_handler': None, # None for no oov handling, secify embeddings o/w
-    'transe_dir': "datasets/transe_dir",
-    'dropout': 0.2
+    'transe_dir': "datasets/transe_dir"
 }
 
 @plac.annotations(
     mode=('Mode type', 'positional', None, str),
-    model_file=('Model', "option", "mdl", str),
-    output=('Output', "option", "out", str)
+    model_file=('Model', "option", "mdl", str)
     #norm_type=("Normalization type", "option", "t", str)
 )
-def main(mode, model_file=None, output=None):
+def main(mode, model_file=None):
     
     # load pretrain embeddings
+    pretrain_embed = None
+    if config['pretrain_word_model'] == 'word2vect':
+        pretrain_embed = gensim.models.KeyedVectors.load_word2vec_format('datasets/GoogleNews-vectors-negative300.bin.gz', binary=True)
+        #pretrain_embed = load_text_embeddings("GoogleNews-vectors-negative100.txt")
+    elif config['pretrain_word_model'] == 'glove':
+        pretrain_embed = load_text_embeddings("GoogleNews-vectors-negative100.txt") # TODO: use glove model
     
-    #pretrain_embed = gensim.models.KeyedVectors.load_word2vec_format('data/GoogleNews-vectors-negative300.bin.gz', binary=True)
-    pretrain_embed = load_glove("GoogleNews-vectors-negative100.txt")
-    question_embed = init_embeddings(vocab, config['hidden_size'], pretrain_embed)
-    #del pretrain_embed
-    #question_embed = None
-
+    if pretrain_embed:
+        pretrain_embed = init_embeddings(vocab, config['hidden_size'], pretrain_embed)
+    
     # create model
-
-    model = KVMemory(config, question_embed, mode)
+    model = KVMemory(config, pretrain_embed, mode)
     model = model.to(device)
 
     #model_optimizer = optim.SGD(model.parameters(), lr=config["lr"])
@@ -578,11 +563,7 @@ def main(mode, model_file=None, output=None):
         if model_file is None:
             exit("Must provide the name of the model to test.")
         
-        if output is None:
-            exit("In testing mode must provide an output file name.")
-        
         test_data = pkl.load(open(config['test_data_file'], "rb"))
-
         model.load_state_dict(torch.load(model_file))
 
         print("Model's state_dict:")
@@ -593,7 +574,7 @@ def main(mode, model_file=None, output=None):
         for var_name in model_optimizer.state_dict():
             print(var_name, "\t", model_optimizer.state_dict()[var_name])
 
-        config['out_test_file'] = output
+        config['out_test_file'] = model_file + 'out_test.txt' 
 
         test(model, test_data, config)
 
