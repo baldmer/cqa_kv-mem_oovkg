@@ -1,6 +1,6 @@
 import os
 from io import open
-import nltk
+#import nltk
 import pickle as pkl
 import json
 import plac
@@ -115,8 +115,12 @@ def binarize_context(context, params):
     binarized_context = []
     binarized_context_kg = []
     num_unk_words = 0
+    try:
+        import nltk
+        utter_words = nltk.word_tokenize(context)
+    except:
+        utter_words = context.split(" ")
 
-    utter_words = nltk.word_tokenize(context)
     utter_words = pad_or_clip_utterance(utter_words)
 
     if END_WORD_SYMBOL not in utter_words:
@@ -287,6 +291,7 @@ def main(input_corpus, output):
         
         for dir_name in dirs:
             
+            print ("Processing dir: %s" % dir_name)            
             context_path = os.path.join(root, dir_name, dir_name+'_context.txt')
             #context = open(context_path, encoding='utf-8').read().split('\n')
             response_entities_path = os.path.join(root, dir_name, dir_name+'_response_entities.txt')
