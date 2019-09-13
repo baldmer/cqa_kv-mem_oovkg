@@ -161,7 +161,7 @@ def load_wikidata(dir_name):
 
     return wikidata, reverse_dict, prop_data, child_par_dict, child_all_par_dict
     
-
+#TODO: specify oov handling as config paramters
 def load_transe_data(dir_name):
     
     if not os.path.exists(dir_name):
@@ -435,12 +435,12 @@ def main(corpus_path):
         
     print("Max. memory size needed: %s" % max_mem_size)
     
-    print("Number of subject candidates: %s" % total_sub_candidates) #could be repeated
-    print("Number of OOV subject candidates (no embedding): %s" % total_oov)
+    #print("Number of subject candidates: %s" % total_sub_candidates) #could be repeated
+    #print("Number of OOV subject candidates (no embedding): %s" % total_oov)
     
     print("Number of questions with no memory candidates: %d - and mem-cands %d" % (num_no_mem_cand, num_mem_cand))
     
-    print("Number of correct tuples with memory candidates: %d" % num_correct_tuples)
+    #print("Number of correct tuples with memory candidates: %d" % num_correct_tuples)
 
                 
 if __name__ == "__main__":

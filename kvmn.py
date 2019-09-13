@@ -168,7 +168,8 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
     
     print ("Train started...")
     print ("Total batches %d, train size: %d" % (n_batches, len(data)))
-    
+    if not os.path.exists(config['save_path']):
+    	os.mkdir(config['save_path'])    
     out_file_loss_valid = open(os.path.join(config['save_path'], config['save_name_prefix']+'_train_valid_loss.txt'), "w")
   
     for epoch in range(config["max_epochs"]):
@@ -376,7 +377,10 @@ def test(model, data, config):
     #csv_w.writerow("target_index, pred_index, target_ent, pred_ent, orig_response")
     
     #out_file_path = os.path.join(config['save_path'], config['out_test_file'])
-    out_file = open(config['out_test_file'], "w")
+    if not os.path.exists(config['metrics_dir']):
+    	os.mkdir(config['metrics_dir'])
+    metrics_path = os.path.join(config['metrics_dir'], config['out_test_file'])
+    out_file = open(metrics_path, "w")
     #out_file.write("target_idx\tpred_idx\ttarget_ent_id\tpred_ent_id\tall_target_ent\torig_resp\n")
                     
     for i_batch in range(n_batches):
@@ -499,19 +503,20 @@ config = {
     'hidden_size': 100, # must be same dim as transe
     'cell_size': 200, 
     'hops': 1, # all of our experiments are with 1 hop
-    'print_every': 100,
+    'print_every': 500,
     'valid_every_epoch': 1, # save best validation loss model
     'save_path':'models',
     'out_test_file': '', # will be "model_name"+"out_test.txt"
     'clip_grad': 5,
     'dropout': 0.2,
     'pretrain_word_model': None,  # word2vec, glove
-    'save_name_prefix': 'TEST_CLEAN_CODE',
-    'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
-    'test_data_file': "datasets/no_oov_handling_new_mem/test.pkl",
-    'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
+    'save_name_prefix': 'NO_OOV_BASE_MEM',
+    'train_data_file': "datasets/no_oov_handling_base_mem/train.pkl",
+    'test_data_file': "datasets/no_oov_handling_base_mem/test.pkl",
+    'valid_data_file': "datasets/no_oov_handling_base_mem/valid.pkl",
     'oov_ent_handler': None, # None for no oov handling, secify embeddings o/w
-    'transe_dir': "datasets/transe_dir"
+    'transe_dir': "datasets/transe_dir",
+    'metrics_dir': 'metrics'
 }
 
 @plac.annotations(
@@ -560,13 +565,14 @@ def main(mode, model_file=None):
     elif mode == 'test':
 
         #load model and test it
-        
+        print ('Testing...')   
+     
         if model_file is None:
             exit("Must provide the name of the model to test.")
         
         test_data = pkl.load(open(config['test_data_file'], "rb"))
         model.load_state_dict(torch.load(model_file))
-
+        '''
         print("Model's state_dict:")
         for param_tensor in model.state_dict():
             print(param_tensor, "\t", model.state_dict()[param_tensor].size())
@@ -574,8 +580,9 @@ def main(mode, model_file=None):
         print("Optimizer's state_dict:")
         for var_name in model_optimizer.state_dict():
             print(var_name, "\t", model_optimizer.state_dict()[var_name])
-
-        config['out_test_file'] = model_file + 'out_test.txt' 
+        '''
+        name_model_file = os.path.basename(model_file)
+        config['out_test_file'] = os.path.splitext(name_model_file)[0] + '_out_test.txt' 
 
         test(model, test_data, config)
 
