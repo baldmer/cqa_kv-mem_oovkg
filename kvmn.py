@@ -58,6 +58,7 @@ class KVMemory(nn.Module):
         
         if pretrain_embed is not None:
           #load pretrain embeddings
+          print ('loading pre-trained word embeddings')
           self.embed_A.weight.data.copy_(torch.from_numpy(pretrain_embed))
           self.embed_A.weight.requires_grad = False
         
@@ -500,8 +501,8 @@ config = {
     #'max_target_size':10,
     'max_mem_size': 10, # grater size might improve scores, take longer to train.
     'input_size': len(vocab.keys()),
-    'hidden_size': 100, # must be same dim as transe
-    'cell_size': 200, 
+    'hidden_size': 300, # must be same dim as transe
+    'cell_size': 400, # must be hidden_size + wiki_embed_size 
     'hops': 1, # all of our experiments are with 1 hop
     'print_every': 500,
     'valid_every_epoch': 1, # save best validation loss model
@@ -509,11 +510,11 @@ config = {
     'out_test_file': '', # will be "model_name"+"out_test.txt"
     'clip_grad': 5,
     'dropout': 0.2,
-    'pretrain_word_model': None,  # word2vec, glove
-    'save_name_prefix': 'NO_OOV_BASE_MEM',
-    'train_data_file': "datasets/no_oov_handling_base_mem/train.pkl",
-    'test_data_file': "datasets/no_oov_handling_base_mem/test.pkl",
-    'valid_data_file': "datasets/no_oov_handling_base_mem/valid.pkl",
+    'pretrain_word_model': "word2vec",  # word2vec, glove
+    'save_name_prefix': 'NO_OOV_NEW_MEM',
+    'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
+    'test_data_file': "datasets/no_oov_handling_new_mem/test.pkl",
+    'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
     'oov_ent_handler': None, # None for no oov handling, secify embeddings o/w
     'transe_dir': "datasets/transe_dir",
     'metrics_dir': 'metrics'
@@ -528,8 +529,8 @@ def main(mode, model_file=None):
     
     # load pretrain embeddings
     pretrain_embed = None
-    if config['pretrain_word_model'] == 'word2vect':
-        pretrain_embed = gensim.models.KeyedVectors.load_word2vec_format('datasets/GoogleNews-vectors-negative300.bin.gz', binary=True)
+    if config['pretrain_word_model'] == 'word2vec':
+        pretrain_embed = gensim.models.KeyedVectors.load_word2vec_format('datasets/GoogleNews-vectors-negative300.bin', binary=True)
         #pretrain_embed = load_text_embeddings("GoogleNews-vectors-negative100.txt")
     elif config['pretrain_word_model'] == 'glove':
         pretrain_embed = load_text_embeddings("GoogleNews-vectors-negative100.txt") # TODO: use glove model
