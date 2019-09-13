@@ -334,6 +334,8 @@ def get_tuples_involving_entities_base(candidate_entities, all_wikidata, transe_
     return tuples, pids
 
 
+# TODO: data splits can be processed all at once, similarly to extract_simple_cqa.py
+
 @plac.annotations(
     corpus_path=('Path to the corpus dataset', 'positional', None, str)
 )
