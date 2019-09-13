@@ -5,6 +5,11 @@ import pickle as pkl
 import json
 import plac
 
+try:
+	import nltk
+except:
+	print ("WARNING: NLTK not available, split() will be used")
+
 WIKIDATA_DIR = "datasets/wikidata_dir"
 TRANSE_DIR = "datasets/transe_dir"
 VOCAB_FILE = "vocabs/vocab.pkl"
@@ -116,7 +121,7 @@ def binarize_context(context, params):
     binarized_context_kg = []
     num_unk_words = 0
     try:
-        import nltk
+        #import nltk
         utter_words = nltk.word_tokenize(context)
     except:
         utter_words = context.split(" ")
