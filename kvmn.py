@@ -334,7 +334,7 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
                     if not os.path.exists(config['save_path']):
                         os.mkdir(config['save_path'])
                         
-                    torch.save(model.state_dict(), os.path.join(config['save_path'], '%s_epoch_%d.pt' % (config["save_name_prefix"], epoch)))
+                    torch.save(model.state_dict(), os.path.join(config['save_path'], '%s_checkpoint_%d.pt' % (config["save_name_prefix"], epoch)))
                 
                 # save stats to file, current train batch loss vs overall valid loss
                 out_file_loss_valid.write("%s\t%s\n" % (avg_batch_loss, overall_valid_loss))
