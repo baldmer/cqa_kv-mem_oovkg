@@ -517,6 +517,7 @@ config = {
     'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
     'oov_ent_handler': None, # None for no oov handling, secify embeddings o/w
     'transe_dir': "datasets/transe_dir",
+    'embed_dir': "datasets/embed_dir"
     'metrics_dir': 'metrics'
 }
 
@@ -530,10 +531,15 @@ def main(mode, model_file=None):
     # load pretrain embeddings
     pretrain_embed = None
     if config['pretrain_word_model'] == 'word2vec':
-        pretrain_embed = gensim.models.KeyedVectors.load_word2vec_format('datasets/GoogleNews-vectors-negative300.bin', binary=True)
-        #pretrain_embed = load_text_embeddings("GoogleNews-vectors-negative100.txt")
+        # embed_file = "GoogleNews-vectors-negative100.txt"
+        embed_file = 'GoogleNews-vectors-negative300.bin'
+        embed_path = os.path.join(config['embed_dir'], embed_file)
+        pretrain_embed = gensim.models.KeyedVectors.load_word2vec_format(embed_path, binary=True)
+        #pretrain_embed = load_text_embeddings(embed_file)
     elif config['pretrain_word_model'] == 'glove':
-        pretrain_embed = load_text_embeddings("GoogleNews-vectors-negative100.txt") # TODO: use glove model
+        embed_file = 'GoogleNews-vectors-negative100.txt'
+        embed_path = os.path.join(config['embed_dir'], embed_file)
+        pretrain_embed = load_text_embeddings(embed_file) # TODO: use glove model
     
     if pretrain_embed:
         pretrain_embed = init_embeddings(vocab, config['hidden_size'], pretrain_embed)

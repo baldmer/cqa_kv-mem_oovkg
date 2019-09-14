@@ -1,8 +1,8 @@
 '''
 Find oov entities embeddings in word embeddings.
-Uses word matching approach.
+Uses text matching approach.
 '''
-
+import os
 import pickle as pkl
 import json
 import numpy as np
@@ -18,7 +18,8 @@ nkb_symbol = '<nkb>'
 config = {}
 config["transe_dir"] = "datasets/transe_dir"
 config["vocabs_dir"] = "vocabs"
-config["wikidata_dir"] = "data"
+config["wikidata_dir"] = "datasets/wikidata_dir"
+config["embed_dir"] = "datasets/embed_dir"
 config["topn_sim"] = 10
 
 
@@ -39,16 +40,17 @@ def load_transe(wiki_items):
     return entity_id_map, label_entity_map, ent_embed
 
 
-def load_word_emebed(embeds_file, algo):
+def load_word_emebeds(algo):
     
+    #TODO: suport other types of embedding models
+   
     if algo == 'w2v':
         # read w2v into gensim
+        w2v_path = os.path.join(config['embed_dir'], 'GoogleNews-vectors-negative300.bin.gz')
+        embeds = gensim.models.KeyedVectors.load_word2vec_format(w2v_path, binary=True)
+    else:
+        exit("Embedding model not valid.")
         
-        embeds = gensim.models.KeyedVectors.load_word2vec_format(embeds_file, binary=True)
-        
-        
-    # TODO: support other embedding algorithms.
-    
     return embeds
     
 
@@ -65,92 +67,87 @@ def load_wiki_items():
 def load_oov_entities(wiki_items):
     '''return all oov entities maped to its label'''
     
-    subj_path = os.path.join(config['vocabs_dir', 'oov_subject_freq_vocab.pkl'])
-    subj_vocab = pkl.load(open(subj_path, 'rb'))
-    obj_path = os.path.join(config['vocabs_dir', 'oov_object_freq_vocab.pkl'])
-    obj_vocab = pkl.load(open(obj_path,'rb'))
+    ent_oov_path = os.path.join(config['vocabs_dir'], 'entities_oov.pkl')
+    ent_oov = pkl.load(open(ent_oov_path, 'rb'))
     
-    all_qids = subj_vocab
-    all_qids.update({qid:freq for qid, freq in obj_vocab.items() if qid not in subj_vocab})
+    qids_labels_map = {qid:wiki_items[qid] for qid, _ in ent_oov.items()}
     
-    all_qids_labels_map = {qid:wiki_items[qid] for qid, _ in all_qids.items()}
-    
-    return all_qids_labels_map
+    return qids_labels_map
 
 
 def to_pkl(obj, file_name):
     with open(file_name, 'wb') as f:
         pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
     
+    
+def search_in(word_embeds, oov_entities):
+    """search oov entities with word embeddings"""
+    
+    entity_label_found = {}
+    
+    for ent, label in oov_entities.items():
+        label_cap = label.capitalize()
+        if label in word_embeds:
+            # single words
+            entity_label_found[ent] = label
+        elif label_cap in word_embeds:
+            # first character in capital
+            entity_label_found[ent] = label_cap
+        else:
+            # sentences (words_separated by _)
+            sentence = '_'.join(label.split(' '))
+            if sentence in word_embeds:
+                entity_label_found[ent] = sentence
+                
+    return entity_label_found
+
 
 @plac.annotations(
-    word_embeds=('Path to W2V/Glove/Fasttext file', 'positional', None, str),
     out=('Output file name', 'positional', None, str),
-    algo=('Word embedding algorithm type [w2v, glove, fasttext]', 'option', 'out', str)
+    algo=('Word embedding algorithm type [w2v, glove, fasttext]', 'option', 'algo', str)
 )
-def main(word_embeds, out, algo='w2v'):
+def main(out, algo='w2v'):
     
     print ("Loading wiki items")
     wiki_items = load_wiki_items()
     
-    print ("Loading TransE")
-    entity_id_map, label_entity_map, ent_embed = load_transe(wiki_items)
-    
     print ("Loading word embeddings")
-    word_embed = load_word_emebed(word_embeds, algo)
+    word_embeds = load_word_emebeds(algo)
     
     print ("Loading OOV entities")
-    oov_entity_label = load_oov_entities(wiki_items)
-
-    # find oov entities with word emebddings
-    
-    entity_label_found = {}
-    
-    for ent, label in oov_entity_label.items():
-        label_cap = label.capitalize()
-        if label in word_embed:
-            #single words
-            entity_label_found[ent] = label
-        elif label_cap in word_embed:
-            entity_label_found[ent] = label_cap
-        else:
-            #sentences
-            sentence = '_'.join(label.split(' '))
-            if sentence in word_embed:
-                entity_label_found[ent] = sentence
-                
+    oov_entities = load_oov_entities(wiki_items)
+    # find OOV entities in word embedding space, most_similar() needs the word to be existent in W.
+    entity_label_found = search_in(word_embeds, oov_entities)
     print("Entities found with word embeddings: %d" % len(entity_label_found))
     
     # find the top n most similar words to the oov entity label
-    
-    oov_ent_embed = [] #np.array
+    oov_ent_embed = []
     oov_id_entity_map = {}
     oov_id = 0
     
+    print ("Loading TransE")
+    entity_id_map, label_entity_map, ent_embed = load_transe(wiki_items)
+    del wiki_items # free memory
+    
     for ent, label in entity_label_found.items():
         
-        matched_entities = [] #in transe
-        matched_embed = [] #of transe
-        topn_sim = word_embed.most_similar([label], topn=config['topn_sim'])
+        matched_embed = [] # of TransE
+        topn_sim = word_embeds.most_similar([label], topn=config['topn_sim'])
         
+        # chances are that at least one synonym of the missing embedding is in TransE
         for word in topn_sim:
             if word[0] in label_entity_map:
-                matched_entities.append(label_ent_map[word[0]])
-        
-        # avg embeddings of matched entities
-        
-        for matched_ent in matched_entities:
-            matched_embed.append(ent_embed[entity_id_map[matched_ent]])
+                matched_ent = label_entity_map[word[0]]
+                matched_embed.append(ent_embed[entity_id_map[matched_ent]])
     
         if len(matched_embed) > 0:
             matched_embed = np.asarray(matched_embed)
-            
             oov_ent_embed.append(np.average(matched_embed, axis=0))
             oov_id_entity_map[oov_id] = ent
             oov_id += 1
             
     np.save(os.path.join(config['transe_dir'], out+'.npy'), oov_ent_embed)
-    to_pkl(oov_id_entity_map, os.path.join(config['transedir'], out+'.pickle'))
+    to_pkl(oov_id_entity_map, os.path.join(config['transe_dir'], out+'.pickle'))
     
     print("Embeddings found by matching method: %d with topn: %d" %(len(oov_ent_embed), config['topn_sim']))
 
