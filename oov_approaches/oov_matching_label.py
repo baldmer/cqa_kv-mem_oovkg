@@ -9,11 +9,6 @@ import numpy as np
 import gensim
 import plac
 
-pad_kb_symbol_index = 0
-pad_kb_symbol = '<pad_kb>'
-nkb_symbol_index = 1
-nkb_symbol = '<nkb>'
-
 #configure paths
 config = {}
 config["transe_dir"] = "datasets/transe_dir"
@@ -24,17 +19,11 @@ config["topn_sim"] = 10
 
 
 def load_transe(wiki_items):
-    
-    id_entity_map = {pad_kb_symbol_index:pad_kb_symbol, nkb_symbol_index: nkb_symbol}
-    id_entity_map.update({(k+2):v for k,v in pkl.load(open(os.path.join(config['transe_dir'], 'id_ent_map.pickle'),'rb')).items()})
-    #id_entity_map = pkl.load(open('data/id_ent_map.pickle','rb'))
+
+    id_ent_map_path = os.path.join(config['transe_dir'], 'id_ent_map.pickle')
+    id_entity_map = pkl.load(open(id_ent_map_path,'rb'))
     entity_id_map = {v: k for k, v in id_entity_map.items()}
-    
     ent_embed = np.load(os.path.join(config['transe_dir'], 'ent_embed.pkl.npy'))
-    new_row = np.zeros((1, 100), dtype=np.float32)
-    ent_embed = np.vstack([new_row, ent_embed]) # corr. to <pad_kb>
-    ent_embed = np.vstack([new_row, ent_embed]) # corr. to <nkb>
-    
     label_entity_map = {wiki_items[qid]:qid for qid, _ in entity_id_map.items()}
     
     return entity_id_map, label_entity_map, ent_embed
