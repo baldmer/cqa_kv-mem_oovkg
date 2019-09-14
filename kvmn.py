@@ -81,6 +81,7 @@ class KVMemory(nn.Module):
             packed_q = nn.utils.rnn.pack_padded_sequence(embed_q, w2v_lens, enforce_sorted=False)
             #  pass through GRU
             _, q_state = self.gru(packed_q) #bs*cell_size
+            q_state = self.dropout(q_state)
             q_state = q_state.squeeze() # from the encoder [1, hid_s, cell_s]
             
             #TODO: one hop is enough for our experiments
@@ -92,13 +93,13 @@ class KVMemory(nn.Module):
                 #q_last = q_state.mm(self.C).clamp(min=0) # batch_size * (2*wikidata_embed_size)
                 q_temp1 = q_last.unsqueeze(1) # batch_size * 1 * (2*wikidata_embed_size)
                 
-                q_temp1 = q_temp1/q_temp1.norm(dim=2)[:,:,None] # bs*1*wiki*2  #L2 normalized
-                q_temp1[q_temp1 != q_temp1] = 0
+                #q_temp1 = q_temp1/q_temp1.norm(dim=2)[:,:,None] # bs*1*wiki*2  #L2 normalized
+                #q_temp1[q_temp1 != q_temp1] = 0
                 
                 #key_emb #batch_size * size_memory * (2*wikidata_embed_size)
                 
-                key_emb = key_emb/key_emb.norm(dim=2)[:,:,None] #bs*sm*wiki*2
-                key_emb[key_emb != key_emb] = 0
+                #key_emb = key_emb/key_emb.norm(dim=2)[:,:,None] #bs*sm*wiki*2
+                #key_emb[key_emb != key_emb] = 0
                 
                 #prod = key_emb * q_temp1
                 #dotted_1 = torch.sum(prod, 2) #bs * ms
@@ -501,7 +502,7 @@ config = {
     #'max_target_size':10,
     'max_mem_size': 10, # grater size might improve scores, take longer to train.
     'input_size': len(vocab.keys()),
-    'hidden_size': 300, # must be same dim as transe
+    'hidden_size': 300, # must be same dim as pre-train
     'cell_size': 400, # must be hidden_size + wiki_embed_size 
     'hops': 1, # all of our experiments are with 1 hop
     'print_every': 500,
@@ -550,6 +551,7 @@ def main(mode, model_file=None):
 
     #model_optimizer = optim.SGD(model.parameters(), lr=config["lr"])
     #optim.SGD(lr=1e-2, momentum=0.9, nesterov=True)
+    # TODO: try # weight_decay = 0.0005
     model_optimizer = optim.Adam(model.parameters(), lr=config["lr"])
     #model_optimizer.load_state_dict(config['save_optimizer'])
 
