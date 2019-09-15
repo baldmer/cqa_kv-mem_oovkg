@@ -18,7 +18,8 @@ config = {}
 config['wikidata_dir'] = "datasets/wikidata_dir"
 config['transe_dir'] = "datasets/transe_dir"
 config['use_baseline_algo'] = False
-
+# file containing oov embeds., we need id_ent_map only, assumed to be in transe_dir
+#config['oov_handler'] = ''
 
 def extract_dimension_from_tuples_as_list(list_of_tuples, dim):
     result = []
@@ -162,7 +163,7 @@ def load_wikidata(dir_name):
     return wikidata, reverse_dict, prop_data, child_par_dict, child_all_par_dict
     
 #TODO: specify oov handling as config paramters
-def load_transe_data(dir_name):
+def load_transe_data(dir_name, oov_id_ent_map):
     
     if not os.path.exists(dir_name):
         sys.exit('TransE path do not exists.')
@@ -172,9 +173,12 @@ def load_transe_data(dir_name):
     id_entity_map = {pad_kb_symbol_index:pad_kb_symbol, nkb_symbol_index: nkb_symbol}
     id_entity_map.update({(k+2):v for k,v in pkl.load(open(dir_name+'/id_ent_map.pickle','rb')).items()})
     
-    # comment for no oov handling
-    #id_entity_map.update({(k+2+NUM_TRANSE_EMBED):v for k,v in pkl.load(open(dir_name+'/v2_oov_id_ent_map.pickle','rb')).items()})
-    
+    if oov_id_ent_map:
+        try:
+            id_entity_map.update({(k+2+NUM_TRANSE_EMBED):v for k,v in pkl.load(open(oov_id_ent_map,'rb')).items()})
+        except:
+            exit('Incorrect oov file name')
+
     entity_id_map = {v: k for k, v in id_entity_map.items()}
 
     id_rel_map = {pad_kb_symbol_index:pad_kb_symbol, nkb_symbol_index: nkb_symbol}
@@ -337,15 +341,16 @@ def get_tuples_involving_entities_base(candidate_entities, all_wikidata, transe_
 # TODO: data splits can be processed all at once, similarly to extract_simple_cqa.py
 
 @plac.annotations(
-    corpus_path=('Path to the corpus dataset', 'positional', None, str)
+    corpus_path=('Path to the corpus dataset', 'positional', None, str),
+    oov_ent_map=('File containing oov embeds. (id_ent_map)', 'option', 'oov', str)
 )
-def main(corpus_path):
+def main(corpus_path, oov_ent_map=None):
     
     if not os.path.exists(corpus_path):
         sys.exit('Dataset path do not exists.')
    
     wikidata = load_wikidata(config["wikidata_dir"])
-    transe_data = load_transe_data(config["transe_dir"])
+    transe_data = load_transe_data(config["transe_dir"], oov_ent_map)
     
     max_mem_size = 0
     total_sub_candidates = 0
