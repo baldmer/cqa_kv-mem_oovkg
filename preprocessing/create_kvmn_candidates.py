@@ -341,7 +341,7 @@ def get_tuples_involving_entities_base(candidate_entities, all_wikidata, transe_
 # TODO: data splits can be processed all at once, similarly to extract_simple_cqa.py
 
 @plac.annotations(
-    corpus_path=('Path to the corpus dataset', 'positional', None, str),
+    corpus_path=('Path to the corpus dataset (split)', 'positional', None, str),
     oov_ent_map=('File containing oov embeds. (id_ent_map)', 'option', 'oov', str)
 )
 def main(corpus_path, oov_ent_map=None):

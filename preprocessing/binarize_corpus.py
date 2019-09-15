@@ -259,10 +259,11 @@ def binarize_key_target(key_target, entity_id_map):
 
 
 @plac.annotations(
-    input_corpus=('Input dataset', 'positional', None, str),
-    output=('Binarized output', 'positional', None, str)
+    input_corpus=('Input dataset split', 'positional', None, str),
+    output=('Binarized output file', 'positional', None, str),
+    oov_id_ent_map=('File containing oov embeds. (id_ent_map)', 'option', 'oov', str)
 )
-def main(input_corpus, output):
+def main(input_corpus, output, oov_id_ent_map=None):
     
     if not os.path.exists(input_corpus):
         exit("Corpus path does not exists")
@@ -282,7 +283,12 @@ def main(input_corpus, output):
     
     id_entity_map = {PAD_KB_SYMBOL_INDEX:PAD_KB_SYMBOL, NKB_SYMBOL_INDEX: NKB_SYMBOL}
     id_entity_map.update({(k+2):v for k, v in pkl.load(open(os.path.join(TRANSE_DIR, 'id_ent_map.pickle'), 'rb')).items()})
-    
+	
+    if oov_id_ent_map:
+        try:
+            id_entity_map.update({(k+2+NUM_TRANSE_EMBED):v for k,v in pkl.load(open(oov_id_ent_map,'rb')).items()})
+        except:
+            exit('Incorrect oov file name')    
     # NOTE: comment for no oov handling
     #id_entity_map.update({(k+2+NUM_TRANSE_EMBED):v for k,v in pkl.load(open(dir_name+'/v2_oov_id_ent_map.pickle','rb')).items()})
     
