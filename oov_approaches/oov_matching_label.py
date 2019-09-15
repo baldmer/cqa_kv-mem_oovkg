@@ -35,7 +35,7 @@ def load_word_emebeds(algo):
    
     if algo == 'w2v':
         # read w2v into gensim
-        w2v_path = os.path.join(config['embed_dir'], 'GoogleNews-vectors-negative300.bin.gz')
+        w2v_path = os.path.join(config['embed_dir'], 'GoogleNews-vectors-negative300.bin')
         embeds = gensim.models.KeyedVectors.load_word2vec_format(w2v_path, binary=True)
     else:
         exit("Embedding model not valid.")
@@ -135,8 +135,8 @@ def main(out, algo='w2v'):
             oov_id_entity_map[oov_id] = ent
             oov_id += 1
             
-    np.save(os.path.join(config['transe_dir'], out+'.npy'), oov_ent_embed)
-    to_pkl(oov_id_entity_map, os.path.join(config['transe_dir'], out+'.pickle'))
+    np.save(os.path.join(config['transe_dir'], out+'_ent_embed.npy'), oov_ent_embed)
+    to_pkl(oov_id_entity_map, os.path.join(config['transe_dir'], out+'_id_ent_map.pickle'))
     
     print("Embeddings found by matching method: %d with topn: %d" %(len(oov_ent_embed), config['topn_sim']))
 
