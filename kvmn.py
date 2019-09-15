@@ -16,7 +16,10 @@ import plac
 
 from read_data import *
 
-#import pickle as pkl
+SEED = 1234
+random.seed(SEED)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
 
 USE_CUDA = torch.cuda.is_available()
 device = torch.device("cuda" if USE_CUDA else "cpu")
@@ -512,13 +515,13 @@ config = {
     'clip_grad': 5,
     'dropout': 0.2,
     'pretrain_word_model': "word2vec",  # word2vec, glove
-    'save_name_prefix': 'NO_OOV_NEW_MEM',
-    'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
-    'test_data_file': "datasets/no_oov_handling_new_mem/test.pkl",
-    'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
-    'oov_ent_handler': None, # None for no oov handling, secify embeddings o/w
+    'save_name_prefix': 'OOV_MATCHING',
+    'train_data_file': "datasets/oov_handling_matching/train.pkl",
+    'test_data_file': "datasets/oov_handling_matching/test.pkl",
+    'valid_data_file': "datasets/oov_handling_matching/valid.pkl",
+    'oov_ent_handler': "oov_text_matching_ent_embed.npy", # specify embeddings file for oov, assumed to be in transe_dir
     'transe_dir': "datasets/transe_dir",
-    'embed_dir': "datasets/embed_dir"
+    'embed_dir': "datasets/embed_dir",
     'metrics_dir': 'metrics'
 }
 
