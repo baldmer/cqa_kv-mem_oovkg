@@ -1,0 +1,11 @@
+# extract simple cqa
+python preprocessing/extract_simple_cqa.py datasets/preprocessed_data_full_cqa/ datasets/simple_cqa_dataset_oov_handling_matching/
+# extract memory candidates
+python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_oov_handling_matching/train -oov datasets/transe_dir/oov_text_matching_id_ent_map.pickle
+python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_oov_handling_matching/valid -oov datasets/transe_dir/oov_text_matching_id_ent_map.pickle
+python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_oov_handling_matching/test -oov datasets/transe_dir/oov_text_matching_id_ent_map.pickle
+# binarize corpus
+python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_oov_handling_matching/train datasets/oov_handling_matching/train.pkl -oov datasets/transe_dir/oov_text_matching_id_ent_map.pickle
+python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_oov_handling_matching/valid datasets/oov_handling_matching/valid.pkl -oov datasets/transe_dir/oov_text_matching_id_ent_map.pickle
+python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_oov_handling_matching/test datasets/oov_handling_matching/test.pkl -oov datasets/transe_dir/oov_text_matching_id_ent_map.pickle
+
