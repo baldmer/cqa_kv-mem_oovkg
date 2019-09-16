@@ -7,6 +7,7 @@ import plac
 
 #configure paths
 config = {}
+config["transe_dir"] = "datasets/transe_dir"
 config["vocabs_dir"] = "vocabs"
 config["wikidata_dir"] = "datasets/wikidata_dir"
 config["embed_dir"] = "datasets/embed_dir"
