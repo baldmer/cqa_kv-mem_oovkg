@@ -275,7 +275,8 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
                 tuples.add((QID, pid, qid))
                 tuples.add((qid, pid, QID))   
     
-    ##oov_cand = len([q for q in candidate_entities if q not in entity_id_map ])
+    # we keep the same order on every execution.
+    tuples = sorted(tuples)
     
     return tuples, pids
 
@@ -416,7 +417,7 @@ def main(corpus_path, oov_ent_map=None):
                     else:
                         num_mem_cand += 1                    
     
-                    print (len(tuples))
+                    print ("Triples processed: %d " % len(tuples))
                         
                     '''
                     for cand in candidate_entities:
