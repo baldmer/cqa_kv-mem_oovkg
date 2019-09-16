@@ -2,6 +2,7 @@
 # process all cqa dataset to extract simple direct cqa data.
 
 import os
+import shutil
 from io import open
 import plac
 
@@ -20,7 +21,11 @@ def main(in_dir, out_dir):
     for data_dir in data_dirs:
         
         q_dirs = os.listdir(os.path.join(in_dir, data_dir))
-        os.mkdir(os.path.join(out_dir, data_dir))
+
+        out_data_dir = os.path.join(out_dir, data_dir)
+        if os.path.exists(out_data_dir):
+            shutil.rmtree(out_data_dir)
+        os.mkdir(out_data_dir)
         
         for q_dir in q_dirs:
             
