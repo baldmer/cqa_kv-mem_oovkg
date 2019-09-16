@@ -206,31 +206,31 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
         
         detected_pids = set()
         rev_feasible_pids = set()
-        feasible_pids = set()
+        #feasible_pids = set()
         
+        wiki_feasible_pids = set()
         #search relations
         
         if QID in wikidata: # and not in child_par_dict
             wiki_feasible_pids = [p for p in wikidata[QID] if p in prop_data and p in rel_id_map]
-        
+        '''
         if QID in child_par_dict:
             #feasible_pids = wiki_feasible_pids
             feasible_pids = wiki_feasible_pids
-        
+        '''
         if QID in reverse_dict:
             rev_feasible_pids = [p for p in reverse_dict[QID] if p in prop_data and p in rel_id_map]
             
         if relations_in_context is not None:
-            detected_pids = set(feasible_pids).intersection(relations_in_context)
-            
+            #detected_pids = set(feasible_pids).intersection(relations_in_context)
+            detected_pids = set(wiki_feasible_pids).intersection(relations_in_context)
             if len(detected_pids) == 0:
-                #search in rev
                 detected_pids = set(rev_feasible_pids).intersection(relations_in_context)
-                
+            '''    
             if len(detected_pids) == 0:
                 #instead of using all pids, we use only the ones for the relation in wikidata
                 detected_pids = set(wiki_feasible_pids).intersection(relations_in_context)
-        
+            '''
         pids.update(detected_pids)
         
         wiki_feasible_qids = set()
@@ -261,17 +261,6 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
                 detected_qids = wiki_feasible_qids.union(feasible_qids).union(rev_feasible_qids)
                
             for qid in detected_qids:
-                '''
-                tup = [QID, pid, qid]
-                rev_tup = [qid, pid, QID]
-                
-                if tup not in tuples:
-                    tuples.append([QID, pid, qid])
-                    
-                if rev_tup not in tuples:
-                    tuples.append([qid, pid, QID])
-                '''
-            
                 tuples.add((QID, pid, qid))
                 tuples.add((qid, pid, QID))   
     
