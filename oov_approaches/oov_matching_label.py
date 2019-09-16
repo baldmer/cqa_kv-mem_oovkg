@@ -87,6 +87,17 @@ def search_in(word_embeds, oov_entities):
             sentence = '_'.join(label.split(' '))
             if sentence in word_embeds:
                 entity_label_found[ent] = sentence
+            else:
+                # sentences of the form Word1_Word2
+                words = label.split(" ")
+                capitalized = []
+                for word in words:
+                    capitalized.append(word.capitalize())
+        
+                sentence = "_".join(capitalized)
+    
+                if sentence in word_embeds:
+                    entity_label_found[ent] = sentence
                 
     return entity_label_found
 
