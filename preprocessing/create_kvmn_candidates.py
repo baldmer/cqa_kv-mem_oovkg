@@ -417,7 +417,8 @@ def main(corpus_path, oov_ent_map=None):
                     else:
                         tuples, relations_explored = get_tuples_involving_entities(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
                         
-                    tuples = pad_or_clip_memory(tuples)
+                    if config['max_mem_size'] is not None:
+                        tuples = pad_or_clip_memory(tuples)
                     
                     '''
                     total_oov += oov_cand_num
