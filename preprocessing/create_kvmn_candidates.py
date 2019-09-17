@@ -1,8 +1,12 @@
 """ based on baseline, can be found at https://github.com/amritasaha1812/CSQA_Code/"""
 import os
+import random
 import pickle as pkl
 import json
 import plac
+
+SEED = 1234
+random.seed(SEED)
 
 #from global ids
 pad_kb_symbol_index = 0
@@ -18,6 +22,7 @@ config = {}
 config['wikidata_dir'] = "datasets/wikidata_dir"
 config['transe_dir'] = "datasets/transe_dir"
 config['use_baseline_algo'] = False
+config['max_mem_size'] = 10 # None, no class balance, get the num. of q. with no cand.
 # file containing oov embeds., we need id_ent_map only, assumed to be in transe_dir
 #config['oov_handler'] = ''
 
@@ -32,6 +37,22 @@ def extract_dimension_from_tuples_as_list(list_of_tuples, dim):
 PIPE = "|"
 def get_str_of_seq(entities):
     return PIPE.join(entities)
+
+
+def pad_or_clip_memory(tuples):
+    '''pad or clip to max memory size'''
+    
+    tuples = list(tuples)
+    if len(tuples) > config['max_mem_size']:
+        tuples = tuples[:config['max_mem_size']]
+    elif len(tuples) < config['max_mem_size']:
+        pad_len = config['max_mem_size'] - len(tuples)
+        nkb_tuple = (nkb_symbol, nkb_symbol, nkb_symbol)
+        tuples = tuples + [nkb_tuple] * pad_len
+    
+    random.shuffle(tuples)
+
+    return tuples
 
 
 def load_wikidata(dir_name):
@@ -395,6 +416,8 @@ def main(corpus_path, oov_ent_map=None):
                         tuples, relations_explored = get_tuples_involving_entities_base(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
                     else:
                         tuples, relations_explored = get_tuples_involving_entities(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
+                        
+                    tuples = pad_or_clip_memory(tuples)
                     
                     '''
                     total_oov += oov_cand_num
@@ -406,7 +429,7 @@ def main(corpus_path, oov_ent_map=None):
                     else:
                         num_mem_cand += 1                    
     
-                    print ("Triples processed: %d " % len(tuples))
+                    #print ("Triples processed: %d " % len(tuples))
                         
                     '''
                     for cand in candidate_entities:
