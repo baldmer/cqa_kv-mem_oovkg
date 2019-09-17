@@ -153,7 +153,8 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
     rel_embed = np.load(os.path.join(config['transe_dir'], 'rel_embed.pkl.npy'))
 
     new_row = np.zeros((1, config["wikidata_embed_size"]), dtype=np.float32)
-    new_row_nkb = np.full((1, config['wikidata_embed_size']), 0.01, dtype=np.float32)
+    new_row_nkb = np.zeros((1, config["wikidata_embed_size"]), dtype=np.float32)
+    #new_row_nkb = np.full((1, config['wikidata_embed_size']), 0.01, dtype=np.float32)
     
     ent_embed = np.vstack([new_row, ent_embed]) # corr. to <pad_kb>
     ent_embed = np.vstack([new_row_nkb, ent_embed]) # corr. to <nkb>
@@ -221,7 +222,6 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
             key_target_emb = key_target_emb.transpose(1,0) #batch_size * size_memory * wikidata_embed_size
             
             enc_kb_emb = torch.FloatTensor([np.array([ent_embed[i] for i in enc_kb_i]) for enc_kb_i in enc_kb[0]]) # seq_len*batch_size*wikidata_emb 
-            
             #to device
             key_emb = key_emb.to(device)
             key_target_emb = key_target_emb.to(device)
@@ -363,7 +363,8 @@ def test(model, data, config):
     rel_embed = np.load(os.path.join(config['transe_dir'], 'rel_embed.pkl.npy'))    
     
     new_row = np.zeros((1, config["wikidata_embed_size"]), dtype=np.float32)
-    new_row_nkb = np.full((1, config['wikidata_embed_size']), 0.01, dtype=np.float32)
+    new_row_nkb = np.zeros((1, config["wikidata_embed_size"]), dtype=np.float32)
+    #new_row_nkb = np.full((1, config['wikidata_embed_size']), 0.01, dtype=np.float32)
     
     ent_embed = np.vstack([new_row, ent_embed]) # corr. to <pad_kb>
     ent_embed = np.vstack([new_row_nkb, ent_embed]) # corr. to <nkb>
@@ -497,7 +498,7 @@ vocab = pkl.load(open("vocabs/vocab.pkl", "rb"))
 
 config = {
     'wikidata_embed_size': 100,
-    'max_epochs': 21,
+    'max_epochs': 10,
     'batch_size': 64,
     'lr': 0.0001, # 'lr': 0.0001 worked well for single class
     #'max_seq_len': 10,
@@ -515,11 +516,12 @@ config = {
     'clip_grad': 5,
     'dropout': 0.2,
     'pretrain_word_model': "word2vec",  # word2vec, glove
-    'save_name_prefix': 'OOV_MATCHING',
-    'train_data_file': "datasets/oov_handling_matching/train.pkl",
-    'test_data_file': "datasets/oov_handling_matching/test.pkl",
-    'valid_data_file': "datasets/oov_handling_matching/valid.pkl",
-    'oov_ent_handler': "oov_text_matching_ent_embed.npy", # specify embeddings file for oov, assumed to be in transe_dir
+    'save_name_prefix': 'no_oov_base_mem',
+    'train_data_file': "datasets/no_oov_handling_base_mem/train.pkl",
+    'test_data_file': "datasets/no_oov_handling_base_mem/test.pkl",
+    'valid_data_file': "datasets/no_oov_handling_base_mem/valid.pkl",
+    #'oov_ent_handler': "oov_text_matching_ent_embed.npy", # specify embeddings file for oov, assumed to be in transe_dir
+    'oov_ent_handler': None, 
     'transe_dir': "datasets/transe_dir",
     'embed_dir': "datasets/embed_dir",
     'metrics_dir': 'metrics'
