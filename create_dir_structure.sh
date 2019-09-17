@@ -29,8 +29,5 @@ newdir="datasets/oov_handling_matching"
 newdir="datasets/oov_handling_pca"
 [ ! -d "$newdir" ] && mkdir -p "$newdir"
 
-newdir="datasets/oov_handling_pca"
-[ ! -d "$newdir" ] && mkdir -p "$newdir"
-
 # extracted simple cqa datasets are created by extraction script.
  
