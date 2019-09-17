@@ -285,9 +285,6 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
                 tuples.add((QID, pid, qid))
                 tuples.add((qid, pid, QID))   
     
-    # we keep the same order on every execution.
-    tuples = sorted(tuples)
-    
     return tuples, pids
 
 
@@ -370,7 +367,6 @@ def main(corpus_path, oov_ent_map=None):
     num_mem_cand = 0
     num_correct_tuples = 0
     
-
     for root, dirs, files in os.walk(corpus_path):        
         for dir_name in dirs:
             
@@ -417,27 +413,14 @@ def main(corpus_path, oov_ent_map=None):
                     else:
                         tuples, relations_explored = get_tuples_involving_entities(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
                         
-                    if config['max_mem_size'] is not None:
+                    #NOTE: class blance is an addition, should be applied only to new approach
+                    if config['max_mem_size'] is not None and len(tuples) != 0:
                         tuples = pad_or_clip_memory(tuples)
-                    
-                    '''
-                    total_oov += oov_cand_num
-                    total_sub_candidates += len(candidate_entities)
-                    '''
                     
                     if len(tuples) == 0:
                         num_no_mem_cand += 1
                     else:
                         num_mem_cand += 1                    
-    
-                    #print ("Triples processed: %d " % len(tuples))
-                        
-                    '''
-                    for cand in candidate_entities:
-                        if [cand, list(relations_in_context)[0], resp_entities[0]] in tuples:
-                            num_correct_tuples += 1
-                            break
-                    '''
                     
                     sources = extract_dimension_from_tuples_as_list(tuples, 0)
                     relations = extract_dimension_from_tuples_as_list(tuples, 1)
@@ -455,14 +438,8 @@ def main(corpus_path, oov_ent_map=None):
                         max_mem_size = len(tuples) 
         
     print("Max. memory size needed: %s" % max_mem_size)
-    
-    #print("Number of subject candidates: %s" % total_sub_candidates) #could be repeated
-    #print("Number of OOV subject candidates (no embedding): %s" % total_oov)
-    
     print("Number of questions with no memory candidates: %d - and mem-cands %d" % (num_no_mem_cand, num_mem_cand))
     
-    #print("Number of correct tuples with memory candidates: %d" % num_correct_tuples)
-
                 
 if __name__ == "__main__":
     plac.call(main)
