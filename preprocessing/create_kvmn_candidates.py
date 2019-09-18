@@ -21,10 +21,7 @@ MAX_CANDIDATE_ENTITIES = 10
 config = {}
 config['wikidata_dir'] = "datasets/wikidata_dir"
 config['transe_dir'] = "datasets/transe_dir"
-config['use_baseline_algo'] = False
 config['max_mem_size'] = 10 # None, no class balance, get the num. of q. with no cand.
-# file containing oov embeds., we need id_ent_map only, assumed to be in transe_dir
-#config['oov_handler'] = ''
 
 def extract_dimension_from_tuples_as_list(list_of_tuples, dim):
     result = []
@@ -350,9 +347,13 @@ def get_tuples_involving_entities_base(candidate_entities, all_wikidata, transe_
 
 @plac.annotations(
     corpus_path=('Path to the corpus dataset (split)', 'positional', None, str),
-    oov_ent_map=('File containing oov embeds. (id_ent_map)', 'option', 'oov', str)
+    oov_ent_map=('File containing oov embeds. (id_ent_map)', 'option', 'oov', str),
+    algo=('Candidate search algorithm', 'option', 'algo', str)
 )
-def main(corpus_path, oov_ent_map=None):
+def main(corpus_path, oov_ent_map=None, algo='new'):
+    
+    if algo not in ['new','base']:
+        print ("Valid candidate search algorithms ['new', 'base']")
     
     if not os.path.exists(corpus_path):
         sys.exit('Dataset path do not exists.')
@@ -408,7 +409,7 @@ def main(corpus_path, oov_ent_map=None):
                     if len(candidate_entities) > MAX_CANDIDATE_ENTITIES:
                         candidate_entities = candidate_entities[:MAX_CANDIDATE_ENTITIES]
                     
-                    if config['use_baseline_algo']:
+                    if algo == 'base':
                         tuples, relations_explored = get_tuples_involving_entities_base(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
                     else:
                         tuples, relations_explored = get_tuples_involving_entities(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
