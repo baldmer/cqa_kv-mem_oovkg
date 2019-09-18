@@ -4,6 +4,7 @@ import random
 import pickle as pkl
 import json
 import plac
+#import tqdm
 
 SEED = 1234
 random.seed(SEED)
@@ -180,7 +181,7 @@ def load_wikidata(dir_name):
 
     return wikidata, reverse_dict, prop_data, child_par_dict, child_all_par_dict
     
-#TODO: specify oov handling as config paramters
+    
 def load_transe_data(dir_name, oov_id_ent_map):
     
     if not os.path.exists(dir_name):
@@ -207,8 +208,11 @@ def load_transe_data(dir_name, oov_id_ent_map):
 
 
 def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data, relations_in_context=None, types_in_context=None):
-    tuples = set([])
-    #tuples = []
+    
+    # using lists will keep the order (we want to reproduce results) and will hurt speed.
+    
+    #tuples = set([])
+    tuples = []
     #rev_tuples = set([])
     pids = set([])
     
@@ -218,7 +222,8 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
     cand = [q1 for q1 in candidate_entities if q1 in child_par_dict and q1 in entity_id_map]
     rev_cand = [q1 for q1 in candidate_entities if q1 in reverse_dict and q1 in entity_id_map]
     
-    cand = set(cand).union(set(rev_cand))
+    #cand = set(cand).union(set(rev_cand))
+    cand = cand + rev_cand
     
     for QID in cand:
         
@@ -229,33 +234,24 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
         wiki_feasible_pids = set()
         #search relations
         
-        if QID in wikidata: # and not in child_par_dict
+        if QID in wikidata:
             wiki_feasible_pids = [p for p in wikidata[QID] if p in prop_data and p in rel_id_map]
-        '''
-        if QID in child_par_dict:
-            #feasible_pids = wiki_feasible_pids
-            feasible_pids = wiki_feasible_pids
-        '''
+        
         if QID in reverse_dict:
             rev_feasible_pids = [p for p in reverse_dict[QID] if p in prop_data and p in rel_id_map]
             
         if relations_in_context is not None:
-            #detected_pids = set(feasible_pids).intersection(relations_in_context)
             detected_pids = set(wiki_feasible_pids).intersection(relations_in_context)
             if len(detected_pids) == 0:
                 detected_pids = set(rev_feasible_pids).intersection(relations_in_context)
-            '''    
-            if len(detected_pids) == 0:
-                #instead of using all pids, we use only the ones for the relation in wikidata
-                detected_pids = set(wiki_feasible_pids).intersection(relations_in_context)
-            '''
+        
         pids.update(detected_pids)
         
         wiki_feasible_qids = set()
         feasible_qids = set()
         rev_feasible_qids = set()
         
-        #get objects/the answer, based on the relations found
+        # get objects/the answers, based on the relations found
         for pid in detected_pids:
             
             # first valid. ensure QID is from respective set.
@@ -276,11 +272,16 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
                 detected_qids = set([x for x in rev_feasible_qids if len(set(child_all_par_dict[x]).intersection(types_in_context))>0])
                     
             if len(detected_qids) == 0:
-                detected_qids = wiki_feasible_qids.union(feasible_qids).union(rev_feasible_qids)
+                #detected_qids = wiki_feasible_qids.union(feasible_qids).union(rev_feasible_qids)
+                detected_qids = list(wiki_feasible_qids) + list(feasible_qids) + list(rev_feasible_qids)
                
+            #for qid in detected_qids:
+            detected_qids = set(detected_qids)
             for qid in detected_qids:
-                tuples.add((QID, pid, qid))
-                tuples.add((qid, pid, QID))   
+                tuples.append((QID, pid, qid))
+                tuples.append((qid, pid, QID))
+                #tuples.add((QID, pid, qid))
+                #tuples.add((qid, pid, QID))   
     
     return tuples, pids
 
@@ -362,13 +363,18 @@ def main(corpus_path, oov_ent_map=None, algo='new'):
     transe_data = load_transe_data(config["transe_dir"], oov_ent_map)
     
     max_mem_size = 0
-    total_sub_candidates = 0
-    total_oov = 0
     num_no_mem_cand = 0
     num_mem_cand = 0
-    num_correct_tuples = 0
+    num_without_answer = 0
     
-    for root, dirs, files in os.walk(corpus_path):        
+    print ("Processing...")
+    
+    max_mem_size = 0
+    num_no_mem_cand = 0
+    num_mem_cand = 0
+    num_tar_in_mem = 0
+    
+    for root, dirs, files in os.walk(corpus_path):
         for dir_name in dirs:
             
             #safe way to consider all questions.
@@ -390,13 +396,11 @@ def main(corpus_path, oov_ent_map=None, algo='new'):
             
             out_sources = os.path.join(corpus_path, dir_name, dir_name+'_sources.txt')
             out_relations = os.path.join(corpus_path, dir_name, dir_name+'_relations.txt')
-            out_targets = os.path.join(corpus_path, dir_name, dir_name+'_key_targets.txt')
+            out_objects = os.path.join(corpus_path, dir_name, dir_name+'_key_targets.txt')
             
             out_cand_stats = os.path.join(corpus_path, dir_name, dir_name+'_candidates_stats.txt')
             
-            print ("processing dir %s" % dir_name)
-            
-            with open(out_sources, "w") as out_sources_f, open(out_relations, "w") as out_relations_f, open(out_targets, "w") as out_targets_f, open(out_cand_stats, "w") as out_cand_stats_f:
+            with open(out_sources, "w") as out_sources_f, open(out_relations, "w") as out_relations_f, open(out_objects, "w") as out_objects_f, open(out_cand_stats, "w") as out_cand_stats_f:
                 
                 for i in range(len(states)):
                     
@@ -414,7 +418,7 @@ def main(corpus_path, oov_ent_map=None, algo='new'):
                     else:
                         tuples, relations_explored = get_tuples_involving_entities(candidate_entities, wikidata, transe_data, relations_in_context, types_in_context)
                         
-                    #NOTE: class blance is an addition, should be applied only to new approach
+                    # NOTE: class blance is an addition, should be applied only to new approach, the cut eventually is applied.
                     if config['max_mem_size'] is not None and len(tuples) != 0:
                         tuples = pad_or_clip_memory(tuples)
                     
@@ -425,22 +429,24 @@ def main(corpus_path, oov_ent_map=None, algo='new'):
                     
                     sources = extract_dimension_from_tuples_as_list(tuples, 0)
                     relations = extract_dimension_from_tuples_as_list(tuples, 1)
-                    targets = extract_dimension_from_tuples_as_list(tuples, 2)
+                    objects = extract_dimension_from_tuples_as_list(tuples, 2)
+                    
+                    num_tar_in_mem += len(set(resp_entities).intersection(set(objects)))
             
                     # write strings to files
                     
                     out_sources_f.write(get_str_of_seq(sources)+'\n')
                     out_relations_f.write(get_str_of_seq(relations)+'\n')
-                    out_targets_f.write(get_str_of_seq(targets)+'\n')
+                    out_objects_f.write(get_str_of_seq(objects)+'\n')
                     
-                    out_cand_stats_f.write("%s, %d, %d, %d, %d \n" %(dir_name, len(tuples), len(sources), len(relations), len(targets)))
+                    out_cand_stats_f.write("%s, %d, %d, %d, %d \n" %(dir_name, len(tuples), len(sources), len(relations), len(objects)))
                     
                     if len(tuples) > max_mem_size:
                         max_mem_size = len(tuples) 
         
     print("Max. memory size needed: %s" % max_mem_size)
     print("Number of questions with no memory candidates: %d - and mem-cands %d" % (num_no_mem_cand, num_mem_cand))
-    
+    print("Number of targets with objects in memory after cut: %d" % num_tar_in_mem)
                 
 if __name__ == "__main__":
     plac.call(main)
