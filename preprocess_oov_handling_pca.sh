@@ -1,10 +1,10 @@
-# extract simple cqa
+echo "extract simple cqa"
 python preprocessing/extract_simple_cqa.py datasets/preprocessed_data_full_cqa/ datasets/simple_cqa_dataset_oov_handling_pca/
-# extract memory candidates
+echo "extract memory candidates"
 python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_oov_handling_pca/train -oov datasets/transe_dir/oov_pca_id_ent_map.pickle
 python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_oov_handling_pca/valid -oov datasets/transe_dir/oov_pca_id_ent_map.pickle
 python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_oov_handling_pca/test -oov datasets/transe_dir/oov_pca_id_ent_map.pickle
-# binarize corpus
+echo "binarize corpus"
 python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_oov_handling_pca/train datasets/oov_handling_pca/train.pkl -oov datasets/transe_dir/oov_pca_id_ent_map.pickle
 python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_oov_handling_pca/valid datasets/oov_handling_pca/valid.pkl -oov datasets/transe_dir/oov_pca_id_ent_map.pickle
 python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_oov_handling_pca/test datasets/oov_handling_pca/test.pkl -oov datasets/transe_dir/oov_pca_id_ent_map.pickle

@@ -298,11 +298,13 @@ def main(input_corpus, output, oov_id_ent_map=None):
     id_rel_map.update({(k+2):v for k, v in pkl.load(open(os.path.join(TRANSE_DIR, 'id_rel_map.pickle'), 'rb')).items()})
     rel_id_map = {v: k for k, v in id_rel_map.items()}
     
+    print ("Processing...")
+
     for root, dirs, files in os.walk(input_corpus):
         
         for dir_name in dirs:
             
-            print ("Processing dir: %s" % dir_name)            
+            #print ("Processing dir: %s" % dir_name)            
             context_path = os.path.join(root, dir_name, dir_name+'_context.txt')
             #context = open(context_path, encoding='utf-8').read().split('\n')
             response_entities_path = os.path.join(root, dir_name, dir_name+'_response_entities.txt')
