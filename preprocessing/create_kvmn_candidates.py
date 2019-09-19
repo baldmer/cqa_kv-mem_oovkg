@@ -45,8 +45,8 @@ def pad_or_clip_memory(tuples):
         tuples = tuples[:config['max_mem_size']]
     elif len(tuples) < config['max_mem_size']:
         pad_len = config['max_mem_size'] - len(tuples)
-        nkb_tuple = (nkb_symbol, nkb_symbol, nkb_symbol)
-        tuples = tuples + [nkb_tuple] * pad_len
+        pad_kb_tuple = (pad_kb_symbol, pad_kb_symbol, pad_kb_symbol)
+        tuples = tuples + [pad_kb_tuple] * pad_len
     
     random.shuffle(tuples)
 
@@ -209,11 +209,8 @@ def load_transe_data(dir_name, oov_id_ent_map):
 
 def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data, relations_in_context=None, types_in_context=None):
     
-    # using lists will keep the order (we want to reproduce results) and will hurt speed.
-    
-    #tuples = set([])
-    tuples = []
-    #rev_tuples = set([])
+    tuples = set([])
+    rev_tuples = set([])
     pids = set([])
     
     wikidata, reverse_dict, prop_data, child_par_dict, child_all_par_dict = all_wikidata
@@ -221,19 +218,15 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
     
     cand = [q1 for q1 in candidate_entities if q1 in child_par_dict and q1 in entity_id_map]
     rev_cand = [q1 for q1 in candidate_entities if q1 in reverse_dict and q1 in entity_id_map]
-    
-    #cand = set(cand).union(set(rev_cand))
-    cand = cand + rev_cand
+    cand = set(cand).union(set(rev_cand))
     
     for QID in cand:
         
         detected_pids = set()
         rev_feasible_pids = set()
-        #feasible_pids = set()
-        
         wiki_feasible_pids = set()
-        #search relations
         
+        #search relations
         if QID in wikidata:
             wiki_feasible_pids = [p for p in wikidata[QID] if p in prop_data and p in rel_id_map]
         
@@ -272,16 +265,12 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
                 detected_qids = set([x for x in rev_feasible_qids if len(set(child_all_par_dict[x]).intersection(types_in_context))>0])
                     
             if len(detected_qids) == 0:
-                #detected_qids = wiki_feasible_qids.union(feasible_qids).union(rev_feasible_qids)
                 detected_qids = list(wiki_feasible_qids) + list(feasible_qids) + list(rev_feasible_qids)
                
-            #for qid in detected_qids:
-            detected_qids = set(detected_qids)
             for qid in detected_qids:
-                tuples.append((QID, pid, qid))
-                tuples.append((qid, pid, QID))
-                #tuples.add((QID, pid, qid))
-                #tuples.add((qid, pid, QID))   
+                if len(tuples) < config['max_mem_size']:
+                    tuples.add((QID, pid, qid))
+                    tuples.add((qid, pid, QID))   
     
     return tuples, pids
 
@@ -447,10 +436,9 @@ def main(corpus_path, oov_ent_map=None, algo='new'):
     print("Max. memory size needed: %s" % max_mem_size)
     print("Number of questions with no memory candidates: %d - and mem-cands %d" % (num_no_mem_cand, num_mem_cand))
     print("Number of targets with objects in memory after cut: %d" % num_tar_in_mem)
+    
                 
 if __name__ == "__main__":
     plac.call(main)
-    
-    
     
     
