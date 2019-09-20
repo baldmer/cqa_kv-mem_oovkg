@@ -1,10 +1,10 @@
-# extract simple cqa
+echo "extract simple cqa"
 python preprocessing/extract_simple_cqa.py datasets/preprocessed_data_full_cqa/ datasets/simple_cqa_dataset_no_oov_handling_base_mem/
-# extract memory candidates
+echo "extract memory candidates"
 python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_no_oov_handling_base_mem/train -algo base
 python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_no_oov_handling_base_mem/valid -algo base
 python preprocessing/create_kvmn_candidates.py datasets/simple_cqa_dataset_no_oov_handling_base_mem/test -algo base
-# binarize corpus
+echo "binarize corpus"
 python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_no_oov_handling_base_mem/train datasets/no_oov_handling_base_mem/train.pkl
 python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_no_oov_handling_base_mem/valid datasets/no_oov_handling_base_mem/valid.pkl
 python preprocessing/binarize_corpus.py datasets/simple_cqa_dataset_no_oov_handling_base_mem/test datasets/no_oov_handling_base_mem/test.pkl
