@@ -265,7 +265,7 @@ def get_tuples_involving_entities(candidate_entities, all_wikidata, transe_data,
                 detected_qids = set([x for x in rev_feasible_qids if len(set(child_all_par_dict[x]).intersection(types_in_context))>0])
                     
             if len(detected_qids) == 0:
-                detected_qids = list(wiki_feasible_qids) + list(feasible_qids) + list(rev_feasible_qids)
+                detected_qids = wiki_feasible_qids.union(feasible_qids).union(rev_feasible_qids)
                
             for qid in detected_qids:
                 if len(tuples) < config['max_mem_size']:
