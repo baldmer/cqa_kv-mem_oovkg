@@ -110,7 +110,7 @@ class KVMemory(nn.Module):
                 dotted = torch.bmm(q_temp1, key_emb.transpose(2,1)) #bs*1*ms
                 dotted = dotted.squeeze(1) #bs*ms
                 
-                probs = F.softmax(dotted * mem_weights, dim=1) # bs * ms
+                probs = F.softmax(dotted, dim=1) # bs * ms
                 probs = torch.unsqueeze(probs, 1) # bs * 1 * ms
                 
                 # --value reading--
@@ -137,7 +137,7 @@ class KVMemory(nn.Module):
             #key_target_emb #bs * ms * wikidata_embed_size
             
             prob_mem = torch.sum(temp_1 * key_target_emb, 2) # batch_size * size_memory
-            prob_mem = F.log_softmax(prob_mem * mem_weights, dim=1) #NOTE: do not pass trough softmax if sigmoid is used
+            prob_mem = F.log_softmax(prob_mem, dim=1) #NOTE: do not pass trough softmax if sigmoid is used
             #prob_mem = F.softmax(prob_mem, dim=1)
             
             return prob_mem
@@ -516,10 +516,10 @@ config = {
     'clip_grad': 5,
     'dropout': 0.2,
     'pretrain_word_model': "word2vec",  # word2vec, glove
-    'save_name_prefix': 'no_oov_base_mem',
-    'train_data_file': "datasets/no_oov_handling_base_mem/train.pkl",
-    'test_data_file': "datasets/no_oov_handling_base_mem/test.pkl",
-    'valid_data_file': "datasets/no_oov_handling_base_mem/valid.pkl",
+    'save_name_prefix': 'no_oov_new_mem',
+    'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
+    'test_data_file': "datasets/no_oov_handling_new_mem/test.pkl",
+    'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
     #'oov_ent_handler': "oov_text_matching_ent_embed.npy", # specify embeddings file for oov, assumed to be in transe_dir
     'oov_ent_handler': None, 
     'transe_dir': "datasets/transe_dir",
