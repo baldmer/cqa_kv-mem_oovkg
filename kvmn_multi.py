@@ -310,7 +310,7 @@ def train(model, data, model_optimizer, loss_f, valid_data, config):
                 # save stats to file, current train batch loss vs overall valid loss
                 out_file_loss_valid.write("%s\t%s\n" % (avg_batch_loss, overall_valid_loss))
                 
-        model.train() # keep training
+            model.train() # keep training
                 
                 
 def adjust_learning_rate(optimizer, epoch, lr):
@@ -417,7 +417,7 @@ def test(model, data, config):
         pred_entities = []
         
         # get value indexed by target_id in memory key_target_id
-        for preds_i, key_target_i, orig_target_i, orig_resp_i in zip(np_pred_indexes, key_target, orig_target, orig_response):
+        for preds_i, key_target_i, orig_target_i, orig_resp_i in zip(preds, key_target, orig_target, orig_response):
             row = []
             row.append('%s' % '|'.join([str(ident) for ident in key_target_i[preds_i]]))
             row.append('%s' % '|'.join([str(ident) for ident in orig_target_i if ident not in [KB_PAD_IDX]])) #EXCLUDE OOV IN ORIG GOLD TARGET
@@ -467,7 +467,7 @@ vocab = pkl.load(open("vocabs/vocab.pkl", "rb"))
 
 config = {
     'wikidata_embed_size': 100,
-    'max_epochs': 10,
+    'max_epochs': 25,
     'batch_size': 64,
     'lr': 0.0001, # 'lr': 0.0001 worked well for single class
     #'max_seq_len': 10,
@@ -485,7 +485,7 @@ config = {
     'clip_grad': 5,
     'dropout': 0.2,
     'pretrain_word_model': "word2vec",  # word2vec, glove
-    'save_name_prefix': 'no_oov_new_mem',
+    'save_name_prefix': 'no_oov_new_mem_multi',
     'train_data_file': "datasets/no_oov_handling_new_mem/train.pkl",
     'test_data_file': "datasets/no_oov_handling_new_mem/test.pkl",
     'valid_data_file': "datasets/no_oov_handling_new_mem/valid.pkl",
