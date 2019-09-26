@@ -72,20 +72,20 @@ def prec_recall_f1(file_name):
     print ("Total oov entities present in gold target (one entity could appear multiple times): %d" % total_oov_all_gold)
     
     # per baseline.
-    avg_prec= sum_prec/float(counter)
-    avg_rec = sum_rec/float(counter)
-    
-    avg_acc = sum_acc/float(counter)
+    #avg_prec= sum_prec/float(counter)
+    #avg_rec = sum_rec/float(counter)
+    #avg_acc = sum_acc/float(counter)
 
     # use all instances
-    #avg_prec= sum_prec/float(NUMBER_OF_INSTANCES)
-    #avg_rec = sum_rec/float(NUMBER_OF_INSTANCES)
+    avg_prec= sum_prec/float(NUMBER_OF_INSTANCES)
+    avg_rec = sum_rec/float(NUMBER_OF_INSTANCES)
+    avg_acc = sum_acc/float(NUMBER_OF_INSTANCES)
 
     print("Avg. Precision: {:.1%}".format(avg_prec))
     print("Avg. Recall: {:.1%}".format(avg_rec))
 
     # will be afected by the multi-label problem and oov.
-    print("Avg. Accuracy of predicting a single entity: {:.1%}".format(avg_acc))
+    print("Avg. Accuracy of predicting exactly all the targets: {:.1%}".format(avg_acc))
 
 
 if __name__ == "__main__":
