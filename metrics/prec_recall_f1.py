@@ -15,7 +15,6 @@ NKB = 1
 #KB_PAD_IDX = 0
 NUMBER_OF_INSTANCES = 81994
 
-
 def prec_recall_f1(file_name):
 
     sum_prec = 0
@@ -36,7 +35,7 @@ def prec_recall_f1(file_name):
         if len(line) != 7:
             continue
         
-        _, _, _, pred_ent, all_gold_ent, _, _ = line
+        gold_index, pred_index, _, pred_ent, all_gold_ent, _, _ = line
         
         # count oov entities in gold target.
         total_oov += len([oov for oov in all_gold_ent.split('|') if oov == str(NKB)])
@@ -54,8 +53,9 @@ def prec_recall_f1(file_name):
         
         if len(all_gold_ent) >= 1:
             #ids of ents. are treated as str.
-            correct_pred = len(set(all_gold_ent).intersection(set(pred_ent)))
-        
+            #correct_pred = len(set(all_gold_ent).intersection(set(pred_ent)))
+            correct_pred = (gold_index == pred_index)         
+
             #acc or predicting a single entity or all the entities (version support only first case)
             
             if correct_pred == len(all_gold_ent):
@@ -80,14 +80,14 @@ def prec_recall_f1(file_name):
     print ("Total oov gold entities used (one entity could appear multiple times): %d" % total_oov)
 
     #per baseline.
-    avg_prec= sum_prec/float(counter)
-    avg_rec = sum_rec/float(counter)
-
-    avg_acc = sum_acc/float(counter)
+    #avg_prec= sum_prec/float(counter)
+    #avg_rec = sum_rec/float(counter)
+    #avg_acc = sum_acc/float(counter)
 
     #use all instances
-    #avg_prec= sum_prec/float(NUMBER_OF_INSTANCES)
-    #avg_rec = sum_rec/float(NUMBER_OF_INSTANCES)
+    avg_prec= sum_prec/float(NUMBER_OF_INSTANCES)
+    avg_rec = sum_rec/float(NUMBER_OF_INSTANCES)
+    avg_acc = sum_acc/float(NUMBER_OF_INSTANCES)
 
     print("Avg. Precision: {:.1%}".format(avg_prec))
     print("Avg. Recall: {:.1%}".format(avg_rec))
