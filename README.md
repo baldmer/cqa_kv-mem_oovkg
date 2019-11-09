@@ -39,13 +39,13 @@ sh create_dir_structure.sh
 Download the public [CQA dataset](https://amritasaha1812.github.io/CSQA/download_CQA/), place the folder `preprocessed_data_full_cqa` into the `datasets` directory.
 
 
-Download the pre-trained [TransE](https://drive.google.com/file/d/1AD_7xesdcJEtth6SZdF5xTllRqPZ3E6-/view?usp=sharing) embeddings and place its content in `datasets/transe_dir`.
+Download the pre-trained [TransE](https://drive.google.com/file/d/1AD_7xesdcJEtth6SZdF5xTllRqPZ3E6-/view?usp=sharing) [1] embeddings and place its content in `datasets/transe_dir`.
 
 Download the [pre-processed wikidata](https://amritasaha1812.github.io/CSQA/download/) and move its content to `datasets/wikidata_dir`.
 
-The pre-trained word embeddings ([word2vec](https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit)) are placed in `datasets/embed_dir`.
+The pre-trained word embeddings ([word2vec](https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit) [2,3]) are placed in `datasets/embed_dir`.
 
-For more information on data sets refer to [CSQA](https://amritasaha1812.github.io/CSQA/).
+For more information on data sets refer to [CSQA](https://amritasaha1812.github.io/CSQA/) [4].
 
 ## Generate offline OOVKG approaches
 
@@ -140,6 +140,26 @@ To evaluate the mult-answer prediction execute:
 ```
 python metrics/prec_recall_f1_multi_target.py metrics/<NAME_MODEL_TEST_OUTPUT.txt>
 ```
+
+# References
+
+[1] Antoine Bordes, Nicolas Usunier, Alberto Garcia-Duran, Jason Weston, and
+Oksana Yakhnenko. Translating embeddings for modeling multi-relational
+data. In Advances in neural information processing systems, pages 2787–2795,
+2013.
+
+[2] Tomas Mikolov, Kai Chen, Greg Corrado, and Jeffrey Dean. Efficient estima-
+tion of word representations in vector space. arXiv preprint arXiv:1301.3781,
+2013.
+
+[3] Tomas Mikolov, Ilya Sutskever, Kai Chen, Greg S Corrado, and Jeff Dean.
+Distributed representations of words and phrases and their compositionality.
+In Advances in neural information processing systems, pages 3111–3119, 2013.
+
+[4] Amrita Saha, Vardaan Pahuja, Mitesh M Khapra, Karthik Sankaranarayanan,
+and Sarath Chandar. Complex sequential question answering: Towards learn-
+ing to converse over linked question answer pairs with a knowledge graph. In
+Thirty-Second AAAI Conference on Artificial Intelligence, 2018.
 
 
 
