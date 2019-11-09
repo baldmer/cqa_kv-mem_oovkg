@@ -143,26 +143,13 @@ python metrics/prec_recall_f1_multi_target.py metrics/<NAME_MODEL_TEST_OUTPUT.tx
 
 # References
 
-[1] Antoine Bordes, Nicolas Usunier, Alberto Garcia-Duran, Jason Weston, and
-Oksana Yakhnenko. Translating embeddings for modeling multi-relational
-data. In Advances in neural information processing systems, pages 2787–2795,
-2013.
+[1] Antoine Bordes, Nicolas Usunier, Alberto Garcia-Duran, Jason Weston, and Oksana Yakhnenko. Translating embeddings for modeling multi-relational data. In Advances in neural information processing systems, pages 2787–2795, 2013.
 
-[2] Tomas Mikolov, Kai Chen, Greg Corrado, and Jeffrey Dean. Efficient estima-
-tion of word representations in vector space. arXiv preprint arXiv:1301.3781,
-2013.
+[2] Tomas Mikolov, Kai Chen, Greg Corrado, and Jeffrey Dean. Efficient estimation of word representations in vector space. arXiv preprint arXiv:1301.3781, 2013.
 
-[3] Tomas Mikolov, Ilya Sutskever, Kai Chen, Greg S Corrado, and Jeff Dean.
-Distributed representations of words and phrases and their compositionality.
-In Advances in neural information processing systems, pages 3111–3119, 2013.
+[3] Tomas Mikolov, Ilya Sutskever, Kai Chen, Greg S Corrado, and Jeff Dean. Distributed representations of words and phrases and their compositionality. In Advances in neural information processing systems, pages 3111–3119, 2013.
 
-[4] Amrita Saha, Vardaan Pahuja, Mitesh M Khapra, Karthik Sankaranarayanan,
-and Sarath Chandar. Complex sequential question answering: Towards learn-
-ing to converse over linked question answer pairs with a knowledge graph. In
-Thirty-Second AAAI Conference on Artificial Intelligence, 2018.
-
-
-
+[4] Amrita Saha, Vardaan Pahuja, Mitesh M Khapra, Karthik Sankaranarayanan, and Sarath Chandar. Complex sequential question answering: Towards learning to converse over linked question answer pairs with a knowledge graph. In Thirty-Second AAAI Conference on Artificial Intelligence, 2018.
 
 
 
