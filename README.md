@@ -136,6 +136,10 @@ Execute
 ```
 python metrics/prec_recall_f1.py metrics/<NAME_MODEL_TEST_OUTPUT.txt>
 ```
+To evaluate the mult-answer prediction execute:
+```
+python metrics/prec_recall_f1_multi_target.py metrics/<NAME_MODEL_TEST_OUTPUT.txt>
+```
 
 
 
