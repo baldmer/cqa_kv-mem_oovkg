@@ -91,7 +91,7 @@ sh preprocess_oov_handling_pca.sh
 
 # Training
 
-The configuration parameters are specified in the `config` dictionary. The most important are described as follows:
+The configuration parameters are specified in the `config` dictionary. The most important are specified as follows:
 
 ```
 'save_name_prefix': 'oov_matching',
