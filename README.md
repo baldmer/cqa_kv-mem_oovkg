@@ -76,7 +76,7 @@ Create vocabularies
 python preprocessing/create_kg_vocabs.py datasets/simple_cqa_dataset/ datasets/transe_dir/ vocabs/
 ```
 
-Reduce Wikidata size
+Reduce Wikidata size (optional - if having RAM issues)
 
 ```
 python preprocessing/reduce_wikidata_size.py
