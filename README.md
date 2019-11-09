@@ -84,7 +84,6 @@ python preprocessing/reduce_wikidata_size.py
 
 Extract memory candidates and produce the final data sets.
 ```
-sh preprocess_no_oov_handling_base_mem.sh
 sh preprocess_no_oov_handling_new_mem.sh
 sh preprocess_oov_handling_matching.sh
 sh preprocess_oov_handling_pca.sh
